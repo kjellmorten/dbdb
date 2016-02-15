@@ -1,0 +1,19 @@
+# Logs
+logs
+*.log
+*.dump
+
+# Dependency directory
+node_modules
+
+# Node.js / NPM
+lib-cov
+*.seed
+*.out
+*.pid
+
+# Miscellaneous
+*~
+*#
+.DS_STORE
+.node_history
