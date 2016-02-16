@@ -12,6 +12,8 @@ let config = {
   db: 'feednstatus'
 };
 
+// Helpers
+
 function setupGetDoc1() {
   nock('http://database.fake')
     .get('/feednstatus/doc1')
