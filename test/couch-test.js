@@ -23,7 +23,7 @@ let authConfig = {
 let cookieStr = 'AuthSession="authcookie"; Expires=Tue, 05 Mar 2013 14:06:11 GMT';
 
 // Reply to db.list()
-function nockAllDocs(opts) {
+function setupAllDocs(opts) {
   opts = opts || {};
   nock('http://database.fake', opts)
     .get('/feednstatus/_all_docs')
@@ -31,7 +31,7 @@ function nockAllDocs(opts) {
 }
 
 // Reply to nano.auth()
-function nockSession(pw) {
+function setupSession(pw) {
   pw = pw || 'thepassword';
   nock('http://database.fake')
     .post('/_session', new RegExp('name=thekey&password=' + pw))
@@ -69,7 +69,7 @@ test('db.connect return', function (t) {
 
 test('config url and db', (t) => {
   t.plan(1);
-  nockAllDocs();
+  setupAllDocs();
   let db = new DbdbCouch(config);
 
   db.connect()
@@ -84,7 +84,7 @@ test('config url and db', (t) => {
 });
 
 test('auth with key and password', (t) => {
-  nockSession();
+  setupSession();
   let db = new DbdbCouch(authConfig);
 
   return db.connect()
@@ -99,7 +99,7 @@ test('auth with key and password', (t) => {
 
 test('auth failure', (t) => {
   t.plan(1);
-  nockSession('otherpassword');
+  setupSession('otherpassword');
   let db = new DbdbCouch(authConfig);
 
   return db.connect()
@@ -116,13 +116,13 @@ test('auth failure', (t) => {
 
 test('auth cookie', (t) => {
   t.plan(1);
-  nockSession();
+  setupSession();
   let db = new DbdbCouch(authConfig);
 
   db.connect()
 
   .then((conn) => {
-    nockAllDocs({reqheaders: {Cookie: cookieStr}});
+    setupAllDocs({reqheaders: {Cookie: cookieStr}});
 
     conn.list((err, body) => {
       t.notOk(err, 'should be used');
