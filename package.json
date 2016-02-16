@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Simple db layer. Supports only Cloudant/CouchDb at the moment.",
   "author": "Kjell-Morten Bratsberg Thorsen <post@kjellmorten.no>",
-  "license": "ISC",
+  "license": "MIT",
   "main": "index.js",
   "scripts": {
     "test": "tape test/**/*-test.js"
@@ -16,6 +16,9 @@
     "url": "https://github.com/kjellmorten/dbdb/issues"
   },
   "homepage": "https://github.com/kjellmorten/dbdb#readme",
+  "directories": {
+    "lib": "./lib"
+  },
   "engines": {
     "node": "5.6.x",
     "npm": ">= 3.3.12"
