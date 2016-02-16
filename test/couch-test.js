@@ -3,7 +3,7 @@
 const test = require('blue-tape');
 const nock = require('nock');
 
-const DbdbCouch = require('../lib/couch');
+const DbdbCouch = require('../lib/couchdb');
 
 // Config without authorization
 let config = {
@@ -42,6 +42,11 @@ function setupSession(pw) {
 
 test('DbdbCouch', (t) => {
   t.equal(typeof DbdbCouch, 'function', 'should be a function');
+  t.end();
+});
+
+test('DbdbCouch.dbType', (t) => {
+  t.equal(DbdbCouch.dbType, 'couchdb', 'should be "couchdb"');
   t.end();
 });
 

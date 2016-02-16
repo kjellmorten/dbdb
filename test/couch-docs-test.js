@@ -4,7 +4,7 @@ const test = require('blue-tape');
 const nock = require('nock');
 const sinon = require('sinon');
 
-const DbdbCouch = require('../lib/couch');
+const DbdbCouch = require('../lib/couchdb');
 
 // Config for connections
 let config = {
