@@ -1,6 +1,6 @@
 {
   "name": "dbdb",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Simple db layer. Supports only Cloudant/CouchDb at the moment.",
   "author": "Kjell-Morten Bratsberg Thorsen <post@kjellmorten.no>",
   "license": "MIT",
