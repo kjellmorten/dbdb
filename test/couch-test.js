@@ -20,7 +20,9 @@ let authConfig = {
 };
 
 // Cookie string
-let cookieStr = 'AuthSession="authcookie"; Expires=Tue, 05 Mar 2013 14:06:11 GMT';
+let cookieStr = 'AuthSession="authcookie"; Version=1; Expires=Tue, 05 Mar 2013 14:06:11 GMT; ' +
+  'Max-Age=86400; Path=/; HttpOnly; Secure';
+let cookieArr = [cookieStr, 'remember:something'];
 
 // Reply to db.list()
 function setupAllDocs(opts) {
@@ -31,11 +33,12 @@ function setupAllDocs(opts) {
 }
 
 // Reply to nano.auth()
-function setupSession(pw) {
+function setupSession(pw, cookie) {
   pw = pw || 'thepassword';
+  cookie = cookie || cookieStr;
   nock('http://database.fake')
     .post('/_session', new RegExp('name=thekey&password=' + pw))
-    .reply(200, {ok: true}, {'Set-Cookie': cookieStr});
+    .reply(200, {ok: true}, {'Set-Cookie': cookie});
 }
 
 function teardownNock() {
@@ -129,6 +132,25 @@ test('auth failure', (t) => {
 test('auth cookie', (t) => {
   t.plan(1);
   setupSession();
+  let db = new DbdbCouch(authConfig);
+
+  db.connect()
+
+  .then((conn) => {
+    setupAllDocs({reqheaders: {Cookie: 'AuthSession="authcookie"'}});
+
+    conn.list((err, body) => {
+      t.notOk(err, 'should be used');
+
+      db.disconnect();
+      teardownNock();
+    });
+  });
+});
+
+test('auth cookie with more cookies', (t) => {
+  t.plan(1);
+  setupSession(null, cookieArr);
   let db = new DbdbCouch(authConfig);
 
   db.connect()
