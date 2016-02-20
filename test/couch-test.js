@@ -38,6 +38,10 @@ function setupSession(pw) {
     .reply(200, {ok: true}, {'Set-Cookie': cookieStr});
 }
 
+function teardownNock() {
+  nock.cleanAll();
+}
+
 // Tests
 
 test('DbdbCouch', (t) => {
@@ -84,6 +88,7 @@ test('config url and db', (t) => {
       t.notOk(err, 'should be used');
 
       db.disconnect();
+      teardownNock();
     });
   });
 });
@@ -99,6 +104,7 @@ test('auth with key and password', (t) => {
     t.pass('should be used');
 
     db.disconnect();
+    teardownNock();
   });
 });
 
@@ -116,6 +122,7 @@ test('auth failure', (t) => {
     }
 
     db.disconnect();
+    teardownNock();
   });
 });
 
@@ -127,17 +134,20 @@ test('auth cookie', (t) => {
   db.connect()
 
   .then((conn) => {
-    setupAllDocs({reqheaders: {Cookie: cookieStr}});
+    setupAllDocs({reqheaders: {Cookie: 'AuthSession="authcookie"'}});
 
     conn.list((err, body) => {
       t.notOk(err, 'should be used');
 
       db.disconnect();
+      teardownNock();
     });
   });
 });
 
 test('db.connect reuse', function (t) {
+  t.plan(1);
+  setupSession();
   let db = new DbdbCouch(config);
 
   return db.connect()
@@ -148,6 +158,7 @@ test('db.connect reuse', function (t) {
       t.equal(conn1, conn2, 'should reuse connection');
 
       db.disconnect();
+      teardownNock();
     });
   });
 });
