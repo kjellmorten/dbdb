@@ -45,6 +45,19 @@ function teardownNock() {
   nock.cleanAll();
 }
 
+// Ask for connection, then list databases
+// Asumes that error is caused by auth failure
+function connectAndList(t, db, no) {
+  return db.connect().then((conn) => {
+    return new Promise((resolve, reject) => {
+      conn.list((err, body) => {
+        t.notOk(err, `conn${no} should be authorized`);
+        resolve(conn);
+      });
+    });
+  });
+}
+
 // Tests
 
 test('DbdbCouch', (t) => {
@@ -66,7 +79,7 @@ test('db.connect', (t) => {
   t.end();
 });
 
-test('db.connect return', function (t) {
+test('db.connect return', (t) => {
   let db = new DbdbCouch(config);
 
   return db.connect()
@@ -167,9 +180,28 @@ test('auth cookie with more cookies', (t) => {
   });
 });
 
-test('db.connect reuse', function (t) {
-  t.plan(1);
+test('db.connect two in parallel', (t) => {
+  t.plan(3);
   setupSession();
+  setupAllDocs({reqheaders: {Cookie: 'AuthSession="authcookie"'}});
+  setupAllDocs({reqheaders: {Cookie: 'AuthSession="authcookie"'}});
+  let db = new DbdbCouch(authConfig);
+
+  return Promise.all([
+    connectAndList(t, db, 1),
+    connectAndList(t, db, 2)
+  ])
+
+  .then((conns) => {
+    t.equal(conns[0], conns[1], 'should return the same connection');
+
+    db.disconnect();
+    teardownNock();
+  });
+});
+
+test('db.connect reuse', (t) => {
+  t.plan(1);
   let db = new DbdbCouch(config);
 
   return db.connect()
@@ -180,21 +212,20 @@ test('db.connect reuse', function (t) {
       t.equal(conn1, conn2, 'should reuse connection');
 
       db.disconnect();
-      teardownNock();
     });
   });
 });
 
 // Tests -- db.disconnect
 
-test('db.disconnect', function (t) {
+test('db.disconnect', (t) => {
   let db = new DbdbCouch(config);
 
   t.equal(typeof db.disconnect, 'function', 'should exist');
   t.end();
 });
 
-test('db.disconnect should close connection', function (t) {
+test('db.disconnect should close connection', (t) => {
   let db = new DbdbCouch(config);
 
   return db.connect()
