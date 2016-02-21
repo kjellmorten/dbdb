@@ -70,6 +70,13 @@ test('DbdbCouch.dbType', (t) => {
   t.end();
 });
 
+test('db.dbType', (t) => {
+  let db = new DbdbCouch();
+
+  t.equal(db.dbType, 'couchdb', 'should be couchdb');
+  t.end();
+});
+
 // Tests -- database connection
 
 test('db.connect', (t) => {
