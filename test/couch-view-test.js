@@ -37,6 +37,37 @@ function setupFnsSourcesPaged(skip) {
     ] });
 }
 
+function setupFnsSourcesAfterKey() {
+  nock('http://database.fake')
+    .get('/feednstatus/_design/fns/_view/sources')
+    .query({ include_docs: 'true', descending: 'false', limit: '2',
+      startkey: JSON.stringify([ '2015-05-24T00:00:00.000Z', 'src2' ]) })
+    .reply(200, { rows: [
+      { id: 'src2', key: [ '2015-05-24T00:00:00.000Z', 'src2' ],
+      doc: { _id: 'src2', type: 'source', name: 'Src 2', url: 'http://source2.com' } },
+      { id: 'src1', key: [ '2015-05-23T00:00:00.000Z', 'src1' ],
+      doc: { _id: 'src1', type: 'source', name: 'Src 1', url: 'http://source1.com' } }
+    ] });
+}
+
+function setupFnsEntriesBySource() {
+  let ent1 = { id: 'ent1', key: [ 'src2', '2015-05-23T00:00:00.000Z' ],
+    doc: { _id: 'ent1', type: 'entry', title: 'Entry 1', url: 'http://source2.com/ent1' } };
+  let ent2 = { id: 'ent2', key: [ 'src2', '2015-05-24T00:00:00.000Z' ],
+      doc: { _id: 'ent2', type: 'entry', title: 'Entry 2', url: 'http://source2.com/ent2' } };
+  nock('http://database.fake')
+    // Not descending
+    .get('/feednstatus/_design/fns/_view/entries_by_source')
+    .query({ include_docs: 'true', descending: 'false', inclusive_end: 'true',
+      startkey: JSON.stringify(['src2']), endkey: JSON.stringify(['src2', {}])})
+    .reply(200, { rows: [ent1, ent2] })
+    // Desscending
+    .get('/feednstatus/_design/fns/_view/entries_by_source')
+    .query({ include_docs: 'true', descending: 'true', inclusive_end: 'true',
+      startkey: JSON.stringify(['src2', {}]), endkey: JSON.stringify(['src2'])})
+    .reply(200, { rows: [ent2, ent1] });
+}
+
 function teardownNock() {
   nock.cleanAll();
 }
@@ -54,7 +85,7 @@ test('db.getView return', (t) => {
   setupFnsSources();
   let db = new DbdbCouch(config);
 
-  return db.getView('fns', 'sources')
+  return db.getView('fns:sources')
 
   .then((obj) => {
     t.ok(Array.isArray(obj), 'should be array');
@@ -69,11 +100,26 @@ test('db.getView return', (t) => {
   });
 });
 
+test('db.getView old signature', (t) => {
+  setupFnsSources();
+  let db = new DbdbCouch(config);
+
+  return db.getView('fns', 'sources')
+
+  .then((obj) => {
+    t.ok(Array.isArray(obj), 'should be array');
+    t.equal(obj.length, 2, 'should have two items');
+    t.equal(obj[0].id, 'src1', 'should have id');
+
+    teardownNock();
+  });
+});
+
 test('db.getView reverse order', (t) => {
   setupFnsSources(true);
   let db = new DbdbCouch(config);
 
-  return db.getView('fns', 'sources', true)
+  return db.getView('fns:sources', true)
 
   .then((obj) => {
     // The mere fact that we're getting results means
@@ -89,7 +135,7 @@ test('db.getView paged view', (t) => {
   setupFnsSourcesPaged();
   let db = new DbdbCouch(config);
 
-  return db.getView('fns', 'sources', false, 1)
+  return db.getView('fns:sources', false, {}, 1)
 
   .then((obj) => {
     t.equal(obj.length, 1, 'should have one item');
@@ -103,7 +149,36 @@ test('db.getView second page', (t) => {
   setupFnsSourcesPaged(1);
   let db = new DbdbCouch(config);
 
-  return db.getView('fns', 'sources', false, 1, 1)
+  return db.getView('fns:sources', false, {}, 1, 1)
+
+  .then((obj) => {
+    // Again, results here means the second page.
+    // Otherwise, we would get a 404 in this test setting
+    t.equal(obj.length, 1, 'should return second page');
+
+    teardownNock();
+  });
+});
+
+test('db.getView paged view through options', (t) => {
+  setupFnsSourcesPaged();
+  let db = new DbdbCouch(config);
+
+  return db.getView('fns:sources', false, {pageSize: 1})
+
+  .then((obj) => {
+    t.equal(obj.length, 1, 'should have one item');
+    t.equal(obj[0].id, 'src2', 'should have right id');
+
+    teardownNock();
+  });
+});
+
+test('db.getView second page through options', (t) => {
+  setupFnsSourcesPaged(1);
+  let db = new DbdbCouch(config);
+
+  return db.getView('fns:sources', false, {pageSize: 1, pageStart: 1})
 
   .then((obj) => {
     // Again, results here means the second page.
@@ -115,19 +190,10 @@ test('db.getView second page', (t) => {
 });
 
 test('db.getView start after specific key', (t) => {
-  nock('http://database.fake')
-    .get('/feednstatus/_design/fns/_view/sources')
-    .query({ include_docs: 'true', descending: 'false', limit: '2',
-      startkey: JSON.stringify([ '2015-05-24T00:00:00.000Z', 'src2' ]) })
-    .reply(200, { rows: [
-      { id: 'src2', key: [ '2015-05-24T00:00:00.000Z', 'src2' ],
-      doc: { _id: 'src2', type: 'source', name: 'Src 2', url: 'http://source2.com' } },
-      { id: 'src1', key: [ '2015-05-23T00:00:00.000Z', 'src1' ],
-      doc: { _id: 'src1', type: 'source', name: 'Src 1', url: 'http://source1.com' } }
-    ] });
+  setupFnsSourcesAfterKey();
   let db = new DbdbCouch(config);
 
-  return db.getView('fns', 'sources', false, 1, [ '2015-05-24T00:00:00.000Z', 'src2' ])
+  return db.getView('fns:sources', false, {startAfter: ['2015-05-24T00:00:00.000Z', 'src2']}, 1)
 
   .then((obj) => {
     t.equal(obj.length, 1, 'should return one item');
@@ -144,7 +210,7 @@ test('db.getView no match', (t) => {
     .reply(200, {});
   let db = new DbdbCouch(config);
 
-  return db.getView('fns', 'sources')
+  return db.getView('fns:sources')
 
   .then((obj) => {
     t.ok(Array.isArray(obj), 'should return array');
@@ -164,7 +230,7 @@ test('db.getView rows without docs', (t) => {
     ] });
   let db = new DbdbCouch(config);
 
-  return db.getView('fns', 'sources')
+  return db.getView('fns:sources')
 
   .then((obj) => {
     t.ok(Array.isArray(obj), 'should return array');
@@ -181,7 +247,7 @@ test('db.getView exception on database error', (t) => {
     .reply(404);
   let db = new DbdbCouch(config);
 
-  return db.getView('fns', 'sources')
+  return db.getView('fns:sources')
 
   .catch((err) => {
     t.ok(err instanceof Error, 'should be Error');
@@ -194,11 +260,43 @@ test('db.getView exception on connection failure', (t) => {
   let db = new DbdbCouch(config);
   sinon.stub(db, 'connect').returns(Promise.reject('Failure'));
 
-  return db.getView('fns', 'sources')
+  return db.getView('fns:sources')
 
   .then(t.fail, (err) => {
     t.equal(err, 'Failure', 'should be connection error');
 
     db.connect.restore();
+  });
+});
+
+test('db.getView filter', (t) => {
+  setupFnsEntriesBySource();
+  let db = new DbdbCouch(config);
+
+  return db.getView('fns:entries_by_source', false, {filter: 'src2'})
+
+  .then((obj) => {
+    t.ok(Array.isArray(obj), 'should be array');
+    t.equal(obj.length, 2, 'should have two items');
+    t.equal(obj[0].id, 'ent1', 'should get first first');
+    t.equal(obj[1].id, 'ent2', 'should get second last');
+
+    teardownNock();
+  });
+});
+
+test('db.getView filter descending', (t) => {
+  setupFnsEntriesBySource();
+  let db = new DbdbCouch(config);
+
+  return db.getView('fns:entries_by_source', true, {filter: 'src2'})
+
+  .then((obj) => {
+    t.ok(Array.isArray(obj), 'should be array');
+    t.equal(obj.length, 2, 'should have two items');
+    t.equal(obj[0].id, 'ent2', 'should get second first');
+    t.equal(obj[1].id, 'ent1', 'should get first last');
+
+    teardownNock();
   });
 });
