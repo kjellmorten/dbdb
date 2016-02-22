@@ -100,6 +100,20 @@ test('db.getView return', (t) => {
   });
 });
 
+test('db.getView keys', (t) => {
+  setupFnsSources();
+  let db = new DbdbCouch(config);
+
+  return db.getView('fns:sources')
+
+  .then((obj) => {
+    t.deepEqual(obj[0]._key, [ '2015-05-23T00:00:00.000Z', 'src1' ], 'should include first key');
+    t.deepEqual(obj[1]._key, [ '2015-05-24T00:00:00.000Z', 'src2' ], 'should include second key');
+
+    teardownNock();
+  });
+});
+
 test('db.getView old signature', (t) => {
   setupFnsSources();
   let db = new DbdbCouch(config);
