@@ -2,6 +2,8 @@
 logs
 *.log
 *.dump
+.nyc_output
+coverage
 
 # Dependency directory
 node_modules

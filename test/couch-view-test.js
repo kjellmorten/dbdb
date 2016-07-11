@@ -1,13 +1,11 @@
-'use strict'
+import test from 'ava'
+import nock from 'nock'
+import sinon from 'sinon'
 
-const test = require('blue-tape')
-const nock = require('nock')
-const sinon = require('sinon')
-
-const DbdbCouch = require('../lib/couchdb')
+import DbdbCouch from '../lib/couchdb'
 
 // Config for connections
-let config = {
+const config = {
   url: 'http://database.fake',
   db: 'feednstatus'
 }
@@ -74,167 +72,150 @@ function teardownNock () {
 
 // Tests -- view
 
-test('db.getView', (t) => {
-  let db = new DbdbCouch(config)
+test('db.getView should exist', (t) => {
+  const db = new DbdbCouch(config)
 
-  t.equal(typeof db.getView, 'function', 'should exist')
-  t.end()
+  t.is(typeof db.getView, 'function')
 })
 
-test('db.getView return', (t) => {
+test('db.getView should return array of items', (t) => {
   setupFnsSources()
-  let db = new DbdbCouch(config)
+  const db = new DbdbCouch(config)
 
   return db.getView('fns:sources')
 
   .then((obj) => {
-    t.ok(Array.isArray(obj), 'should be array')
-    t.equal(obj.length, 2, 'should have two items')
-    t.equal(typeof obj[0], 'object', 'should be objects')
-    t.equal(obj[0].id, 'src1', 'should have id')
-    t.equal(obj[0].type, 'source', 'should have type')
-    t.equal(obj[0].name, 'Src 1', 'should have name')
-    t.equal(obj[0].url, 'http://source1.com', 'should have url')
+    t.true(Array.isArray(obj))
+    t.is(obj.length, 2)
+    t.is(typeof obj[0], 'object')
+    t.is(obj[0].id, 'src1')
+    t.is(obj[0].type, 'source')
+    t.is(obj[0].name, 'Src 1')
+    t.is(obj[0].url, 'http://source1.com')
 
     teardownNock()
   })
 })
 
-test('db.getView keys', (t) => {
+test('db.getView should return keys', (t) => {
   setupFnsSources()
-  let db = new DbdbCouch(config)
+  const db = new DbdbCouch(config)
 
   return db.getView('fns:sources')
 
   .then((obj) => {
-    t.deepEqual(obj[0]._key, [ '2015-05-23T00:00:00.000Z', 'src1' ], 'should include first key')
-    t.deepEqual(obj[1]._key, [ '2015-05-24T00:00:00.000Z', 'src2' ], 'should include second key')
+    t.deepEqual(obj[0]._key, [ '2015-05-23T00:00:00.000Z', 'src1' ])
+    t.deepEqual(obj[1]._key, [ '2015-05-24T00:00:00.000Z', 'src2' ])
 
     teardownNock()
   })
 })
 
-test('db.getView old signature', (t) => {
-  setupFnsSources()
-  let db = new DbdbCouch(config)
-
-  return db.getView('fns', 'sources')
-
-  .then((obj) => {
-    t.ok(Array.isArray(obj), 'should be array')
-    t.equal(obj.length, 2, 'should have two items')
-    t.equal(obj[0].id, 'src1', 'should have id')
-
-    teardownNock()
-  })
-})
-
-test('db.getView reverse order', (t) => {
+test('db.getView should reverse order', (t) => {
   setupFnsSources(true)
-  let db = new DbdbCouch(config)
+  const db = new DbdbCouch(config)
 
   return db.getView('fns:sources', true)
 
   .then((obj) => {
-    // The mere fact that we're getting results means
-    // the db.getView asked for a reverse order.
+    // Getting results here means we got results in reverse order.
     // Otherwise, we would get a 404 in this test setting
-    t.equal(obj.length, 2, 'should return reversed')
+    t.is(obj.length, 2)
 
     teardownNock()
   })
 })
 
-test('db.getView paged view', (t) => {
+test('db.getView should return paged view', (t) => {
   setupFnsSourcesPaged()
-  let db = new DbdbCouch(config)
+  const db = new DbdbCouch(config)
 
   return db.getView('fns:sources', false, {}, 1)
 
   .then((obj) => {
-    t.equal(obj.length, 1, 'should have one item')
-    t.equal(obj[0].id, 'src2', 'should have right id')
+    t.is(obj.length, 1)
+    t.is(obj[0].id, 'src2')
 
     teardownNock()
   })
 })
 
-test('db.getView second page', (t) => {
+test('db.getView should return second page', (t) => {
   setupFnsSourcesPaged(1)
-  let db = new DbdbCouch(config)
+  const db = new DbdbCouch(config)
 
   return db.getView('fns:sources', false, {}, 1, 1)
 
   .then((obj) => {
-    // Again, results here means the second page.
+    // Getting results here means we got the second page.
     // Otherwise, we would get a 404 in this test setting
-    t.equal(obj.length, 1, 'should return second page')
+    t.is(obj.length, 1)
 
     teardownNock()
   })
 })
 
-test('db.getView paged view through options', (t) => {
+test('db.getView should return paged view through options', (t) => {
   setupFnsSourcesPaged()
-  let db = new DbdbCouch(config)
+  const db = new DbdbCouch(config)
 
   return db.getView('fns:sources', false, {pageSize: 1})
 
   .then((obj) => {
-    t.equal(obj.length, 1, 'should have one item')
-    t.equal(obj[0].id, 'src2', 'should have right id')
+    t.is(obj.length, 1)
+    t.is(obj[0].id, 'src2')
 
     teardownNock()
   })
 })
 
-test('db.getView second page through options', (t) => {
+test('db.getView should return second page through options', (t) => {
   setupFnsSourcesPaged(1)
-  let db = new DbdbCouch(config)
+  const db = new DbdbCouch(config)
 
   return db.getView('fns:sources', false, {pageSize: 1, pageStart: 1})
 
   .then((obj) => {
-    // Again, results here means the second page.
+    // Getting results here means we got the second page.
     // Otherwise, we would get a 404 in this test setting
-    t.equal(obj.length, 1, 'should return second page')
+    t.is(obj.length, 1)
 
     teardownNock()
   })
 })
 
-test('db.getView start after specific key', (t) => {
+test('db.getView should start after specific key', (t) => {
   setupFnsSourcesAfterKey()
-  let db = new DbdbCouch(config)
+  const db = new DbdbCouch(config)
 
   return db.getView('fns:sources', false, {startAfter: ['2015-05-24T00:00:00.000Z', 'src2']}, 1)
 
   .then((obj) => {
-    t.equal(obj.length, 1, 'should return one item')
-    t.equal(obj[0].id, 'src1', 'shoudl have right id')
+    t.is(obj.length, 1)
+    t.is(obj[0].id, 'src1')
 
     teardownNock()
   })
 })
 
-test('db.getView no match', (t) => {
+test('db.getView should return no match', (t) => {
   nock('http://database.fake')
     .get('/feednstatus/_design/fns/_view/sources')
     .query({ include_docs: 'true', descending: 'false' })
     .reply(200, {})
-  let db = new DbdbCouch(config)
+  const db = new DbdbCouch(config)
 
   return db.getView('fns:sources')
 
   .then((obj) => {
-    t.ok(Array.isArray(obj), 'should return array')
-    t.equal(obj.length, 0, 'should return no items')
+    t.true(Array.isArray(obj))
+    t.is(obj.length, 0)
 
     teardownNock()
   })
 })
 
-test('db.getView rows without docs', (t) => {
+test('db.getView should not return rows without docs', (t) => {
   nock('http://database.fake')
     .get('/feednstatus/_design/fns/_view/sources')
     .query({ include_docs: 'true', descending: 'false' })
@@ -242,74 +223,74 @@ test('db.getView rows without docs', (t) => {
       { id: 'src1' },
       { id: 'src2', doc: { _id: 'src2', type: 'source' } }
     ] })
-  let db = new DbdbCouch(config)
+  const db = new DbdbCouch(config)
 
   return db.getView('fns:sources')
 
   .then((obj) => {
-    t.ok(Array.isArray(obj), 'should return array')
-    t.equal(obj.length, 1, 'should have only one item')
-    t.equal(obj[0].id, 'src2', 'should only have row with doc')
+    t.true(Array.isArray(obj))
+    t.is(obj.length, 1)
+    t.is(obj[0].id, 'src2')
 
     teardownNock()
   })
 })
 
-test('db.getView exception on database error', (t) => {
+test('db.getView should throw on database error', (t) => {
   nock('http://database.fake')
     .get('/feednstatus/_design/fns/_view/sources')
     .reply(404)
-  let db = new DbdbCouch(config)
+  const db = new DbdbCouch(config)
 
   return db.getView('fns:sources')
 
   .catch((err) => {
-    t.ok(err instanceof Error, 'should be Error')
+    t.truthy(err instanceof Error)
 
     teardownNock()
   })
 })
 
-test('db.getView exception on connection failure', (t) => {
-  let db = new DbdbCouch(config)
+test('db.getView should throw on connection failure', (t) => {
+  const db = new DbdbCouch(config)
   sinon.stub(db, 'connect').returns(Promise.reject('Failure'))
 
   return db.getView('fns:sources')
 
   .then(t.fail, (err) => {
-    t.equal(err, 'Failure', 'should be connection error')
+    t.is(err, 'Failure')
 
     db.connect.restore()
   })
 })
 
-test('db.getView filter', (t) => {
+test('db.getView should filter results', (t) => {
   setupFnsEntriesBySource()
-  let db = new DbdbCouch(config)
+  const db = new DbdbCouch(config)
 
   return db.getView('fns:entries_by_source', false, {filter: 'src2'})
 
   .then((obj) => {
-    t.ok(Array.isArray(obj), 'should be array')
-    t.equal(obj.length, 2, 'should have two items')
-    t.equal(obj[0].id, 'ent1', 'should get first first')
-    t.equal(obj[1].id, 'ent2', 'should get second last')
+    t.true(Array.isArray(obj))
+    t.is(obj.length, 2)
+    t.is(obj[0].id, 'ent1')
+    t.is(obj[1].id, 'ent2')
 
     teardownNock()
   })
 })
 
-test('db.getView filter descending', (t) => {
+test('db.getView should filter results descending', (t) => {
   setupFnsEntriesBySource()
-  let db = new DbdbCouch(config)
+  const db = new DbdbCouch(config)
 
   return db.getView('fns:entries_by_source', true, {filter: 'src2'})
 
   .then((obj) => {
-    t.ok(Array.isArray(obj), 'should be array')
-    t.equal(obj.length, 2, 'should have two items')
-    t.equal(obj[0].id, 'ent2', 'should get second first')
-    t.equal(obj[1].id, 'ent1', 'should get first last')
+    t.true(Array.isArray(obj))
+    t.is(obj.length, 2)
+    t.is(obj[0].id, 'ent2')
+    t.is(obj[1].id, 'ent1')
 
     teardownNock()
   })

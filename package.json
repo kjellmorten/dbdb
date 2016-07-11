@@ -7,7 +7,21 @@
   "main": "index.js",
   "scripts": {
     "lint": "standard; exit 0",
-    "test": "tape test/**/*-test.js"
+    "test": "nyc ava",
+    "test:watch": "ava --watch"
+  },
+  "ava": {
+    "files": [
+      "./test/**/*-test.js"
+    ],
+    "source": [
+      "./lib/**/!(*-test).js"
+    ],
+    "babel": {
+      "presets": [
+        "babel-preset-es2015-node6"
+      ]
+    }
   },
   "repository": {
     "type": "git",
@@ -21,22 +35,18 @@
     "lib": "./lib"
   },
   "engines": {
-    "node": "5.6.x",
+    "node": "6.2.2",
     "npm": ">= 3.3.12"
   },
   "dependencies": {
     "nano": "^6.2.0"
   },
   "devDependencies": {
-    "blue-tape": "^0.2.0",
-    "gulp": "^3.9.1",
-    "gulp-env": "^0.4.0",
-    "gulp-eslint": "^1.1.1",
-    "gulp-tape": "0.0.7",
+    "ava": "^0.15.2",
+    "babel-preset-es2015-node6": "^0.2.0",
     "nock": "^7.0.2",
+    "nyc": "^7.0.0",
     "sinon": "^1.17.3",
-    "standard": "^7.1.2",
-    "tap-min": "^1.1.0",
-    "tape": "^4.4.0"
+    "standard": "^7.1.2"
   }
 }
