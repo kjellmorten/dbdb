@@ -1,42 +1,35 @@
 import test from 'ava'
-import nock from 'nock'
 import sinon from 'sinon'
+import {setupNock, teardownNock} from './helpers/http'
 
 import DbdbCouch from '../lib/couchdb'
 
 // Config for connections
-const config = {
-  url: 'http://database.fake',
-  db: 'feednstatus'
-}
+const getConfig = (nock) => ({url: (nock) ? nock.basePath : 'http://test.url', db: 'feednstatus'})
 
 // Helpers
 
 function setupBulk () {
-  nock('http://database.fake')
+  return setupNock()
     .post('/feednstatus/_bulk_docs')
     .reply(201, [ { id: 'doc1', rev: '2774761004' }, { id: 'doc2', rev: '2774761005' } ])
-}
-
-function teardownNock () {
-  nock.cleanAll()
 }
 
 // Tests -- insert many
 
 test('db.insertMany should exist', (t) => {
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig())
 
   t.is(typeof db.insertMany, 'function')
 })
 
 test('db.insertMany should insert new documents', (t) => {
-  setupBulk()
+  const nock = setupBulk()
   const docs = [
     { type: 'entry', title: 'First title' },
     { type: 'entry', title: 'Second title' }
   ]
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.insertMany(docs)
 
@@ -52,16 +45,16 @@ test('db.insertMany should insert new documents', (t) => {
     t.is(obj[1].type, 'entry')
     t.is(obj[1].title, 'Second title')
 
-    teardownNock()
+    teardownNock(nock)
   })
 })
 
 test('db.insertMany should return _error and _reason', (t) => {
   const docs = [{ type: 'entry' }, { type: 'entry' }]
-  nock('http://database.fake')
+  const nock = setupNock()
     .post('/feednstatus/_bulk_docs')
     .reply(201, [ { id: 'doc1', rev: '2774761004' }, { id: 'doc2', error: 'conflict', reason: 'Some reason' } ])
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.insertMany(docs)
 
@@ -71,12 +64,12 @@ test('db.insertMany should return _error and _reason', (t) => {
     t.is(ret[1]._error, 'conflict')
     t.is(ret[1]._reason, 'Some reason')
 
-    teardownNock()
+    teardownNock(nock)
   })
 })
 
 test('db.insertMany should throw for missing docs', (t) => {
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig())
 
   return db.insertMany()
 
@@ -86,7 +79,7 @@ test('db.insertMany should throw for missing docs', (t) => {
 })
 
 test('db.insertMany should return empty array', (t) => {
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig())
 
   return db.insertMany([])
 
@@ -97,7 +90,7 @@ test('db.insertMany should return empty array', (t) => {
 })
 
 test('db.insertMany should throw exception when connection fails', (t) => {
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig())
   sinon.stub(db, 'connect').returns(Promise.reject('Failure'))
 
   return db.insertMany([ { type: 'entry', title: 'Title' } ])
@@ -111,24 +104,24 @@ test('db.insertMany should throw exception when connection fails', (t) => {
 })
 
 test('db.insertMany should throw on bulk error', (t) => {
-  nock('http://database.fake')
+  const nock = setupNock()
     .post('/feednstatus/_bulk_docs')
     .reply(500)
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.insertMany([ { type: 'entry', title: 'Title' } ])
 
   .catch((err) => {
     t.true(err instanceof Error)
 
-    teardownNock()
+    teardownNock(nock)
   })
 })
 
 // Tests -- delete many
 
 test('db.deleteMany should exist', (t) => {
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig())
 
   t.is(typeof db.deleteMany, 'function')
 })
@@ -138,7 +131,7 @@ test('db.deleteMany should mark as deleted', (t) => {
     { id: 'ent1', type: 'entry', title: 'First title' },
     { id: 'ent2', type: 'entry', title: 'Second title' }
   ]
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig())
   sinon.stub(db, 'insertMany').returns(Promise.resolve([]))
 
   return db.deleteMany(docs)
@@ -157,7 +150,7 @@ test('db.deleteMany should mark as deleted', (t) => {
 
 test('db.deleteMany should return input', (t) => {
   const ret = []
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig())
   sinon.stub(db, 'insertMany').returns(Promise.resolve(ret))
 
   return db.deleteMany([])

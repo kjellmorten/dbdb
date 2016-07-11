@@ -1,21 +1,16 @@
-'use strict'
-
 import test from 'ava'
-import nock from 'nock'
 import sinon from 'sinon'
+import {setupNock, teardownNock} from './helpers/http'
 
 import DbdbCouch from '../lib/couchdb'
 
 // Config for connections
-const config = {
-  url: 'http://database.fake',
-  db: 'feednstatus'
-}
+const getConfig = (nock) => ({url: (nock) ? nock.basePath : 'http://test.url', db: 'feednstatus'})
 
 // Helpers
 
-function setupGetDoc1 () {
-  nock('http://database.fake')
+function setupGetDoc1 (nockScope) {
+  return setupNock(nockScope)
     .get('/feednstatus/doc1')
     .reply(200, {
       _id: 'doc1',
@@ -26,8 +21,8 @@ function setupGetDoc1 () {
     })
 }
 
-function setupPostDoc1 () {
-  nock('http://database.fake')
+function setupPostDoc1 (nockScope) {
+  return setupNock(nockScope)
     .post('/feednstatus', { _id: 'doc1', _rev: '2774761001' })
     .reply(201, {
       ok: true,
@@ -36,8 +31,8 @@ function setupPostDoc1 () {
     })
 }
 
-function setupPostDoc2 () {
-  nock('http://database.fake')
+function setupPostDoc2 (nockScope) {
+  return setupNock(nockScope)
     .post('/feednstatus', { _id: 'doc2' })
     .reply(201, {
       ok: true,
@@ -46,8 +41,8 @@ function setupPostDoc2 () {
     })
 }
 
-function setupPostDoc3 () {
-  nock('http://database.fake')
+function setupPostDoc3 (nockScope) {
+  return setupNock(nockScope)
     .post('/feednstatus')
     .reply(201, {
       ok: true,
@@ -56,21 +51,17 @@ function setupPostDoc3 () {
     })
 }
 
-function teardownNock () {
-  nock.cleanAll()
-}
-
 // Tests -- get document
 
 test('db.get', (t) => {
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig())
 
   t.is(typeof db.get, 'function')
 })
 
-test.serial('db.get should return doc', (t) => {
-  setupGetDoc1()
-  const db = new DbdbCouch(config)
+test('db.get should return doc', (t) => {
+  const nock = setupGetDoc1()
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.get('doc1')
 
@@ -80,12 +71,12 @@ test.serial('db.get should return doc', (t) => {
     t.is(obj.type, 'entry')
     t.is(obj.title, 'The title')
 
-    teardownNock()
+    teardownNock(nock)
   })
 })
 
 test('db.get should throw for non-existing document', (t) => {
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig())
 
   return db.get('doc2')
 
@@ -97,7 +88,7 @@ test('db.get should throw for non-existing document', (t) => {
 })
 
 test('db.get should throw for missing docid', (t) => {
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig())
 
   return db.get()
 
@@ -107,8 +98,8 @@ test('db.get should throw for missing docid', (t) => {
 })
 
 test('db.get should throw when connection fails', (t) => {
-  setupGetDoc1()
-  const db = new DbdbCouch(config)
+  const nock = setupGetDoc1()
+  const db = new DbdbCouch(getConfig(nock))
   sinon.stub(db, 'connect').returns(Promise.reject('Failure'))
 
   return db.get('doc1')
@@ -117,26 +108,26 @@ test('db.get should throw when connection fails', (t) => {
     t.is(err, 'Failure')
 
     db.connect.restore()
-    teardownNock()
+    teardownNock(nock)
   })
 })
 
 // Tests -- insert document
 
 test('db.insert should exist', (t) => {
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig())
 
   t.is(typeof db.insert, 'function')
 })
 
-test.serial('db.insert should insert new document', (t) => {
-  setupPostDoc2()
+test('db.insert should insert new document', (t) => {
+  const nock = setupPostDoc2()
   let doc = {
     id: 'doc2',
     type: 'entry',
     title: 'New title'
   }
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.insert(doc)
 
@@ -146,28 +137,28 @@ test.serial('db.insert should insert new document', (t) => {
     t.is(obj._rev, '2774761002')
     t.is(obj.title, 'New title')
 
-    teardownNock()
+    teardownNock(nock)
   })
 })
 
-test.serial('db.insert should insert and get id from database', (t) => {
-  setupPostDoc3()
+test('db.insert should insert and get id from database', (t) => {
+  const nock = setupPostDoc3()
   const doc = { type: 'entry' }
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.insert(doc)
 
   .then((obj) => {
     t.is(obj.id, 'doc3')
 
-    teardownNock()
+    teardownNock(nock)
   })
 })
 
-test.serial('db.insert should updating existing document', (t) => {
-  setupPostDoc1()
+test('db.insert should updating existing document', (t) => {
+  const nock = setupPostDoc1()
   const doc = { id: 'doc1', _rev: '2774761001', type: 'entry' }
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.insert(doc)
 
@@ -175,12 +166,12 @@ test.serial('db.insert should updating existing document', (t) => {
     t.is(obj.id, 'doc1')
     t.is(obj._rev, '2774761004')
 
-    teardownNock()
+    teardownNock(nock)
   })
 })
 
 test('db.insert should throw for missing document object', (t) => {
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig())
 
   return db.insert()
 
@@ -190,9 +181,9 @@ test('db.insert should throw for missing document object', (t) => {
 })
 
 test('db.insert should throw when connection fails', (t) => {
-  setupPostDoc1()
+  const nock = setupPostDoc1()
   const doc = { id: 'doc1', type: 'entry' }
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig(nock))
   sinon.stub(db, 'connect').returns(Promise.reject('Failure'))
 
   return db.insert(doc)
@@ -201,27 +192,27 @@ test('db.insert should throw when connection fails', (t) => {
     t.is(err, 'Failure')
 
     db.connect.restore()
-    teardownNock()
+    teardownNock(nock)
   })
 })
 
 // Tests -- update
 
 test('db.update should exist', (t) => {
-  let db = new DbdbCouch(config)
+  let db = new DbdbCouch(getConfig())
 
   t.is(typeof db.update, 'function')
 })
 
-test.serial('db.update should update document', (t) => {
-  setupGetDoc1()
-  setupPostDoc1()
+test('db.update should update document', (t) => {
+  const nock = setupGetDoc1()
+  setupPostDoc1(nock)
   const doc = {
     id: 'doc1',
     type: 'entry',
     title: 'A brand new title'
   }
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.update(doc)
 
@@ -231,38 +222,38 @@ test.serial('db.update should update document', (t) => {
     t.is(obj._rev, '2774761004')
     t.is(obj.title, 'A brand new title')
 
-    teardownNock()
+    teardownNock(nock)
   })
 })
 
-test.serial('db.update should keep old createdAt', (t) => {
-  setupGetDoc1()
-  setupPostDoc1()
+test('db.update should keep old createdAt', (t) => {
+  const nock = setupGetDoc1()
+  setupPostDoc1(nock)
   const doc = {
     id: 'doc1',
     type: 'entry',
     createdAt: '2015-06-01'
   }
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.update(doc)
 
   .then((obj) => {
     t.is(obj.createdAt, '2015-05-23')
 
-    teardownNock()
+    teardownNock(nock)
   })
 })
 
-test.serial('db.update should update provided data only', (t) => {
-  setupGetDoc1()
-  setupPostDoc1()
+test('db.update should update provided data only', (t) => {
+  const nock = setupGetDoc1()
+  setupPostDoc1(nock)
   const doc = {
     id: 'doc1',
     title: 'Another brand new title',
     description: 'Described in detail'
   }
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.update(doc)
 
@@ -271,19 +262,19 @@ test.serial('db.update should update provided data only', (t) => {
     t.is(obj.description, 'Described in detail')
     t.is(obj.type, 'entry')
 
-    teardownNock()
+    teardownNock(nock)
   })
 })
 
-test.serial('db.update should return _rev and no other underscored properties', (t) => {
-  setupGetDoc1()
-  setupPostDoc1()
+test('db.update should return _rev and no other underscored properties', (t) => {
+  const nock = setupGetDoc1()
+  setupPostDoc1(nock)
   const doc = {
     id: 'doc1',
     _rev: '2883392',
     _internal: 'something'
   }
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.update(doc)
 
@@ -291,12 +282,12 @@ test.serial('db.update should return _rev and no other underscored properties', 
     t.is(obj._rev, '2774761004')
     t.is(typeof obj._internal, 'undefined')
 
-    teardownNock()
+    teardownNock(nock)
   })
 })
 
 test('db.update should throw for missing document object', (t) => {
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig())
 
   return db.update()
 
@@ -307,7 +298,7 @@ test('db.update should throw for missing document object', (t) => {
 
 test('db.update should throw for missing id', (t) => {
   const doc = { type: 'entry' }
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig())
 
   return db.update(doc)
 

@@ -1,21 +1,18 @@
 import test from 'ava'
-import nock from 'nock'
+import {setupNock, teardownNock} from './helpers/http'
 
 import DbdbCouch from '../lib/couchdb'
 
 // Config without authorization
-const config = {
-  url: 'http://database.fake',
-  db: 'feednstatus'
-}
+const getConfig = (nock) => ({url: (nock) ? nock.basePath : 'http://test.url', db: 'feednstatus'})
 
 // Config with key and password
-const authConfig = {
-  url: 'http://database.fake',
+const getAuthConfig = (nock) => ({
+  url: (nock) ? nock.basePath : 'http://test.url',
   db: 'feednstatus',
   key: 'thekey',
   password: 'thepassword'
-}
+})
 
 // Cookie string
 const cookieStr = 'AuthSession="authcookie" Version=1 Expires=Tue, 05 Mar 2013 14:06:11 GMT ' +
@@ -23,24 +20,20 @@ const cookieStr = 'AuthSession="authcookie" Version=1 Expires=Tue, 05 Mar 2013 1
 const cookieArr = [cookieStr, 'remember:something']
 
 // Reply to db.list()
-function setupAllDocs (opts) {
+function setupAllDocs (opts, nock) {
   opts = opts || {}
-  nock('http://database.fake', opts)
+  return setupNock(nock, opts)
     .get('/feednstatus/_all_docs')
     .reply(200)
 }
 
 // Reply to nano.auth()
-function setupSession (pw, cookie) {
+function setupSession (pw, cookie, nock) {
   pw = pw || 'thepassword'
   cookie = cookie || cookieStr
-  nock('http://database.fake')
+  return setupNock(nock)
     .post('/_session', new RegExp('name=thekey&password=' + pw))
     .reply(200, {ok: true}, {'Set-Cookie': cookie})
-}
-
-function teardownNock () {
-  nock.cleanAll()
 }
 
 // Ask for connection, then list databases
@@ -75,13 +68,13 @@ test('db.dbType should be couchdb', (t) => {
 // Tests -- database connection
 
 test('db.connect should exist', (t) => {
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig())
 
   t.is(typeof db.connect, 'function')
 })
 
 test('db.connect should return a nano object', (t) => {
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig())
 
   return db.connect()
 
@@ -94,8 +87,8 @@ test('db.connect should return a nano object', (t) => {
 })
 
 test('db.connect should use config url and db', (t) => {
-  setupAllDocs()
-  const db = new DbdbCouch(config)
+  const nock = setupAllDocs()
+  const db = new DbdbCouch(getConfig(nock))
 
   db.connect()
 
@@ -104,14 +97,14 @@ test('db.connect should use config url and db', (t) => {
       t.falsy(err)
 
       db.disconnect()
-      teardownNock()
+      teardownNock(nock)
     })
   })
 })
 
 test('db.connect should use auth with key and password', (t) => {
-  setupSession()
-  const db = new DbdbCouch(authConfig)
+  const nock = setupSession()
+  const db = new DbdbCouch(getAuthConfig(nock))
 
   return db.connect()
 
@@ -120,13 +113,13 @@ test('db.connect should use auth with key and password', (t) => {
     t.pass()
 
     db.disconnect()
-    teardownNock()
+    teardownNock(nock)
   })
 })
 
 test('db.connect should fail on wrong password', (t) => {
-  setupSession('otherpassword')
-  const db = new DbdbCouch(authConfig)
+  const nock = setupSession('otherpassword')
+  const db = new DbdbCouch(getAuthConfig(nock))
 
   return db.connect()
 
@@ -137,14 +130,14 @@ test('db.connect should fail on wrong password', (t) => {
     }
 
     db.disconnect()
-    teardownNock()
+    teardownNock(nock)
   })
 })
 
-test.serial('db.connect should use auth cookie', (t) => {
-  setupSession()
-  setupAllDocs({reqheaders: {Cookie: 'AuthSession="authcookie"'}})
-  const db = new DbdbCouch(authConfig)
+test('db.connect should use auth cookie', (t) => {
+  const nock = setupSession()
+  setupAllDocs({reqheaders: {Cookie: 'AuthSession="authcookie"'}}, nock)
+  const db = new DbdbCouch(getAuthConfig(nock))
 
   db.connect()
 
@@ -153,15 +146,15 @@ test.serial('db.connect should use auth cookie', (t) => {
       t.falsy(err)
 
       db.disconnect()
-      teardownNock()
+      teardownNock(nock)
     })
   })
 })
 
-test.serial('db.connect should use auth cookie with more cookies', (t) => {
-  setupSession(null, cookieArr)
-  setupAllDocs({reqheaders: {Cookie: 'AuthSession="authcookie"'}})
-  const db = new DbdbCouch(authConfig)
+test('db.connect should use auth cookie with more cookies', (t) => {
+  const nock = setupSession(null, cookieArr)
+  setupAllDocs({reqheaders: {Cookie: 'AuthSession="authcookie"'}}, nock)
+  const db = new DbdbCouch(getAuthConfig(nock))
 
   db.connect()
 
@@ -170,16 +163,16 @@ test.serial('db.connect should use auth cookie with more cookies', (t) => {
       t.falsy(err)
 
       db.disconnect()
-      teardownNock()
+      teardownNock(nock)
     })
   })
 })
 
 test.skip('db.connect should reuse authcookie for two parallel connections', (t) => {
-  setupSession()
-  setupAllDocs({reqheaders: {Cookie: 'AuthSession="authcookie"'}})
-  setupAllDocs({reqheaders: {Cookie: 'AuthSession="authcookie"'}})
-  const db = new DbdbCouch(authConfig)
+  const nock = setupSession()
+  setupAllDocs({reqheaders: {Cookie: 'AuthSession="authcookie"'}}, nock)
+  setupAllDocs({reqheaders: {Cookie: 'AuthSession="authcookie"'}}, nock)
+  const db = new DbdbCouch(getAuthConfig(nock))
 
   return Promise.all([
     connectAndList(t, db, 1),
@@ -190,12 +183,12 @@ test.skip('db.connect should reuse authcookie for two parallel connections', (t)
     t.is(conns[0], conns[1])
 
     db.disconnect()
-    teardownNock()
+    teardownNock(nock)
   })
 })
 
 test('db.connect should reuse connection', (t) => {
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig())
 
   return db.connect()
   .then((conn1) => {
@@ -212,13 +205,13 @@ test('db.connect should reuse connection', (t) => {
 // Tests -- db.disconnect
 
 test('db.disconnect should exist', (t) => {
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig())
 
   t.is(typeof db.disconnect, 'function')
 })
 
 test('db.disconnect should close connection', (t) => {
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig())
 
   return db.connect()
   .then((conn1) => {

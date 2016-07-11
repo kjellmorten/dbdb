@@ -1,19 +1,16 @@
 import test from 'ava'
-import nock from 'nock'
 import sinon from 'sinon'
+import {setupNock, teardownNock} from './helpers/http'
 
 import DbdbCouch from '../lib/couchdb'
 
 // Config for connections
-const config = {
-  url: 'http://database.fake',
-  db: 'feednstatus'
-}
+const getConfig = (nock) => ({url: (nock) ? nock.basePath : 'http://test.url', db: 'feednstatus'})
 
 // Helpers
 
 function setupFnsSources (desc) {
-  nock('http://database.fake')
+  return setupNock()
     .get('/feednstatus/_design/fns/_view/sources')
     .query({ include_docs: 'true', descending: (desc) ? 'true' : 'false' })
     .reply(200, { rows: [
@@ -26,7 +23,7 @@ function setupFnsSources (desc) {
 
 function setupFnsSourcesPaged (skip) {
   skip = skip || 0
-  nock('http://database.fake')
+  return setupNock()
     .get('/feednstatus/_design/fns/_view/sources')
     .query({ include_docs: 'true', descending: 'false', limit: '1', skip: skip.toString() })
     .reply(200, { rows: [
@@ -36,7 +33,7 @@ function setupFnsSourcesPaged (skip) {
 }
 
 function setupFnsSourcesAfterKey () {
-  nock('http://database.fake')
+  return setupNock()
     .get('/feednstatus/_design/fns/_view/sources')
     .query({ include_docs: 'true', descending: 'false', limit: '2',
       startkey: JSON.stringify([ '2015-05-24T00:00:00.000Z', 'src2' ]) })
@@ -53,7 +50,7 @@ function setupFnsEntriesBySource () {
     doc: { _id: 'ent1', type: 'entry', title: 'Entry 1', url: 'http://source2.com/ent1' } }
   let ent2 = { id: 'ent2', key: [ 'src2', '2015-05-24T00:00:00.000Z' ],
       doc: { _id: 'ent2', type: 'entry', title: 'Entry 2', url: 'http://source2.com/ent2' } }
-  nock('http://database.fake')
+  return setupNock()
     // Not descending
     .get('/feednstatus/_design/fns/_view/entries_by_source')
     .query({ include_docs: 'true', descending: 'false', inclusive_end: 'true',
@@ -66,21 +63,17 @@ function setupFnsEntriesBySource () {
     .reply(200, { rows: [ent2, ent1] })
 }
 
-function teardownNock () {
-  nock.cleanAll()
-}
-
 // Tests -- view
 
 test('db.getView should exist', (t) => {
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig())
 
   t.is(typeof db.getView, 'function')
 })
 
 test('db.getView should return array of items', (t) => {
-  setupFnsSources()
-  const db = new DbdbCouch(config)
+  const nock = setupFnsSources()
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.getView('fns:sources')
 
@@ -98,8 +91,8 @@ test('db.getView should return array of items', (t) => {
 })
 
 test('db.getView should return keys', (t) => {
-  setupFnsSources()
-  const db = new DbdbCouch(config)
+  const nock = setupFnsSources()
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.getView('fns:sources')
 
@@ -112,8 +105,8 @@ test('db.getView should return keys', (t) => {
 })
 
 test('db.getView should reverse order', (t) => {
-  setupFnsSources(true)
-  const db = new DbdbCouch(config)
+  const nock = setupFnsSources(true)
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.getView('fns:sources', {desc: true})
 
@@ -127,8 +120,8 @@ test('db.getView should reverse order', (t) => {
 })
 
 test('db.getView should reverse order with old signature', (t) => {
-  setupFnsSources(true)
-  const db = new DbdbCouch(config)
+  const nock = setupFnsSources(true)
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.getView('fns:sources', true)
 
@@ -142,8 +135,8 @@ test('db.getView should reverse order with old signature', (t) => {
 })
 
 test('db.getView should return paged view through options', (t) => {
-  setupFnsSourcesPaged()
-  const db = new DbdbCouch(config)
+  const nock = setupFnsSourcesPaged()
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.getView('fns:sources', false, {pageSize: 1})
 
@@ -156,8 +149,8 @@ test('db.getView should return paged view through options', (t) => {
 })
 
 test('db.getView should return second page through options', (t) => {
-  setupFnsSourcesPaged(1)
-  const db = new DbdbCouch(config)
+  const nock = setupFnsSourcesPaged(1)
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.getView('fns:sources', false, {pageSize: 1, pageStart: 1})
 
@@ -171,8 +164,8 @@ test('db.getView should return second page through options', (t) => {
 })
 
 test('db.getView should start after specific key', (t) => {
-  setupFnsSourcesAfterKey()
-  const db = new DbdbCouch(config)
+  const nock = setupFnsSourcesAfterKey()
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.getView('fns:sources', false, {startAfter: ['2015-05-24T00:00:00.000Z', 'src2'], pageSize: 1})
 
@@ -184,12 +177,12 @@ test('db.getView should start after specific key', (t) => {
   })
 })
 
-test.serial('db.getView should return no match', (t) => {
-  nock('http://database.fake')
+test('db.getView should return no match', (t) => {
+  const nock = setupNock()
     .get('/feednstatus/_design/fns/_view/sources')
     .query({ include_docs: 'true', descending: 'false' })
     .reply(200, {})
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.getView('fns:sources')
 
@@ -201,15 +194,15 @@ test.serial('db.getView should return no match', (t) => {
   })
 })
 
-test.serial('db.getView should not return rows without docs', (t) => {
-  nock('http://database.fake')
+test('db.getView should not return rows without docs', (t) => {
+  const nock = setupNock()
     .get('/feednstatus/_design/fns/_view/sources')
     .query({ include_docs: 'true', descending: 'false' })
     .reply(200, { rows: [
       { id: 'src1' },
       { id: 'src2', doc: { _id: 'src2', type: 'source' } }
     ] })
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.getView('fns:sources')
 
@@ -222,14 +215,14 @@ test.serial('db.getView should not return rows without docs', (t) => {
   })
 })
 
-test.serial('db.getView should use value when present', (t) => {
-  nock('http://database.fake')
+test('db.getView should use value when present', (t) => {
+  const nock = setupNock()
     .get('/feednstatus/_design/fns/_view/sources')
     .query({ include_docs: 'true', descending: 'false' })
     .reply(200, { rows: [
       { id: 'src1', value: { _id: 'src1', type: 'source' }, doc: null }
     ] })
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.getView('fns:sources')
 
@@ -243,10 +236,10 @@ test.serial('db.getView should use value when present', (t) => {
 })
 
 test('db.getView should throw on database error', (t) => {
-  nock('http://database.fake')
+  const nock = setupNock()
     .get('/feednstatus/_design/fns/_view/sources')
     .reply(404)
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.getView('fns:sources')
 
@@ -258,7 +251,7 @@ test('db.getView should throw on database error', (t) => {
 })
 
 test('db.getView should throw on connection failure', (t) => {
-  const db = new DbdbCouch(config)
+  const db = new DbdbCouch(getConfig())
   sinon.stub(db, 'connect').returns(Promise.reject('Failure'))
 
   return db.getView('fns:sources')
@@ -271,8 +264,8 @@ test('db.getView should throw on connection failure', (t) => {
 })
 
 test('db.getView should filter results', (t) => {
-  setupFnsEntriesBySource()
-  const db = new DbdbCouch(config)
+  const nock = setupFnsEntriesBySource()
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.getView('fns:entries_by_source', false, {filter: 'src2'})
 
@@ -287,8 +280,8 @@ test('db.getView should filter results', (t) => {
 })
 
 test('db.getView should filter results descending', (t) => {
-  setupFnsEntriesBySource()
-  const db = new DbdbCouch(config)
+  const nock = setupFnsEntriesBySource()
+  const db = new DbdbCouch(getConfig(nock))
 
   return db.getView('fns:entries_by_source', true, {filter: 'src2'})
 
