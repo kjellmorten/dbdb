@@ -1,9 +1,9 @@
-'use strict';
+'use strict'
 
-var gulp = require('gulp');
+var gulp = require('gulp')
 
-var config = require('../config');
+var config = require('../config')
 
-module.exports = function() {
-    return gulp.watch([config.paths.lib, config.paths.test], ['flush', 'test']);
-};
+module.exports = function () {
+  return gulp.watch([config.paths.lib, config.paths.test], ['flush', 'test'])
+}
