@@ -115,7 +115,7 @@ test('db.getView should reverse order', (t) => {
   setupFnsSources(true)
   const db = new DbdbCouch(config)
 
-  return db.getView('fns:sources', true)
+  return db.getView('fns:sources', {desc: true})
 
   .then((obj) => {
     // Getting results here means we got results in reverse order.
@@ -126,30 +126,16 @@ test('db.getView should reverse order', (t) => {
   })
 })
 
-test('db.getView should return paged view', (t) => {
-  setupFnsSourcesPaged()
+test('db.getView should reverse order with old signature', (t) => {
+  setupFnsSources(true)
   const db = new DbdbCouch(config)
 
-  return db.getView('fns:sources', false, {}, 1)
+  return db.getView('fns:sources', true)
 
   .then((obj) => {
-    t.is(obj.length, 1)
-    t.is(obj[0].id, 'src2')
-
-    teardownNock()
-  })
-})
-
-test('db.getView should return second page', (t) => {
-  setupFnsSourcesPaged(1)
-  const db = new DbdbCouch(config)
-
-  return db.getView('fns:sources', false, {}, 1, 1)
-
-  .then((obj) => {
-    // Getting results here means we got the second page.
+    // Getting results here means we got results in reverse order.
     // Otherwise, we would get a 404 in this test setting
-    t.is(obj.length, 1)
+    t.is(obj.length, 2)
 
     teardownNock()
   })
@@ -188,7 +174,7 @@ test('db.getView should start after specific key', (t) => {
   setupFnsSourcesAfterKey()
   const db = new DbdbCouch(config)
 
-  return db.getView('fns:sources', false, {startAfter: ['2015-05-24T00:00:00.000Z', 'src2']}, 1)
+  return db.getView('fns:sources', false, {startAfter: ['2015-05-24T00:00:00.000Z', 'src2'], pageSize: 1})
 
   .then((obj) => {
     t.is(obj.length, 1)
@@ -198,7 +184,7 @@ test('db.getView should start after specific key', (t) => {
   })
 })
 
-test('db.getView should return no match', (t) => {
+test.serial('db.getView should return no match', (t) => {
   nock('http://database.fake')
     .get('/feednstatus/_design/fns/_view/sources')
     .query({ include_docs: 'true', descending: 'false' })
@@ -215,7 +201,7 @@ test('db.getView should return no match', (t) => {
   })
 })
 
-test('db.getView should not return rows without docs', (t) => {
+test.serial('db.getView should not return rows without docs', (t) => {
   nock('http://database.fake')
     .get('/feednstatus/_design/fns/_view/sources')
     .query({ include_docs: 'true', descending: 'false' })
@@ -231,6 +217,26 @@ test('db.getView should not return rows without docs', (t) => {
     t.true(Array.isArray(obj))
     t.is(obj.length, 1)
     t.is(obj[0].id, 'src2')
+
+    teardownNock()
+  })
+})
+
+test.serial('db.getView should use value when present', (t) => {
+  nock('http://database.fake')
+    .get('/feednstatus/_design/fns/_view/sources')
+    .query({ include_docs: 'true', descending: 'false' })
+    .reply(200, { rows: [
+      { id: 'src1', value: { _id: 'src1', type: 'source' }, doc: null }
+    ] })
+  const db = new DbdbCouch(config)
+
+  return db.getView('fns:sources')
+
+  .then((obj) => {
+    t.true(Array.isArray(obj))
+    t.is(obj.length, 1)
+    t.is(obj[0].id, 'src1')
 
     teardownNock()
   })
