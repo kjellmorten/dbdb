@@ -15,15 +15,15 @@ const getAuthConfig = (nock) => ({
 })
 
 // Cookie string
-const cookieStr = 'AuthSession="authcookie" Version=1 Expires=Tue, 05 Mar 2013 14:06:11 GMT ' +
-  'Max-Age=86400 Path=/ HttpOnly Secure'
-const cookieArr = [cookieStr, 'remember:something']
+const cookieStr = 'AuthSession=authcookie; Version=1; Expires=Tue, 05 Mar 2023 14:06:11 GMT; ' +
+  'Max-Age=86400; Path=/; HttpOnly Secure'
+const cookieArr = [cookieStr, 'remember=something']
 
 // Reply to db.list()
-function setupAllDocs (opts, nock) {
+function setupAllDocs (opts, count = 1, nock) {
   opts = opts || {}
   return setupNock(nock, opts)
-    .get('/feednstatus/_all_docs')
+    .get('/feednstatus/_all_docs').times(count)
     .reply(200)
 }
 
@@ -32,21 +32,8 @@ function setupSession (pw, cookie, nock) {
   pw = pw || 'thepassword'
   cookie = cookie || cookieStr
   return setupNock(nock)
-    .post('/_session', new RegExp('name=thekey&password=' + pw))
+    .post('/_session', {name: 'thekey', password: pw})
     .reply(200, {ok: true}, {'Set-Cookie': cookie})
-}
-
-// Ask for connection, then list databases
-// Asumes that error is caused by auth failure
-function connectAndList (t, db, no) {
-  return db.connect().then((conn) => {
-    return new Promise((resolve, reject) => {
-      conn.list((err, body) => {
-        t.falsy(err, `conn${no} should be authorized`)
-        resolve(conn)
-      })
-    })
-  })
 }
 
 // Tests
@@ -86,7 +73,7 @@ test('db.connect should return a nano object', (t) => {
   })
 })
 
-test('db.connect should use config url and db', (t) => {
+test.cb('db.connect should use config url and db', (t) => {
   const nock = setupAllDocs()
   const db = new DbdbCouch(getConfig(nock))
 
@@ -98,7 +85,8 @@ test('db.connect should use config url and db', (t) => {
 
       db.disconnect()
       teardownNock(nock)
-    })
+      t.end()
+    }, t.end)
   })
 })
 
@@ -134,26 +122,28 @@ test('db.connect should fail on wrong password', (t) => {
   })
 })
 
-test('db.connect should use auth cookie', (t) => {
+test.cb('db.connect should use auth cookie', (t) => {
   const nock = setupSession()
-  setupAllDocs({reqheaders: {Cookie: 'AuthSession="authcookie"'}}, nock)
+  setupAllDocs({reqheaders: {Cookie: 'AuthSession=authcookie'}}, 1, nock)
   const db = new DbdbCouch(getAuthConfig(nock))
 
   db.connect()
 
   .then((conn) => {
-    conn.list((err, body) => {
+    conn.list((err, body, headers) => {
+      // t.is(headers, {})
       t.falsy(err)
 
       db.disconnect()
       teardownNock(nock)
-    })
+      t.end()
+    }, t.end)
   })
 })
 
-test('db.connect should use auth cookie with more cookies', (t) => {
+test.cb('db.connect should use auth cookie with more cookies', (t) => {
   const nock = setupSession(null, cookieArr)
-  setupAllDocs({reqheaders: {Cookie: 'AuthSession="authcookie"'}}, nock)
+  setupAllDocs({reqheaders: {Cookie: 'AuthSession=authcookie'}}, 1, nock)
   const db = new DbdbCouch(getAuthConfig(nock))
 
   db.connect()
@@ -164,27 +154,33 @@ test('db.connect should use auth cookie with more cookies', (t) => {
 
       db.disconnect()
       teardownNock(nock)
-    })
+      t.end()
+    }, t.end)
   })
 })
 
-test.skip('db.connect should reuse authcookie for two parallel connections', (t) => {
+test.cb('db.connect should reuse authcookie for two parallel connections', (t) => {
   const nock = setupSession()
-  setupAllDocs({reqheaders: {Cookie: 'AuthSession="authcookie"'}}, nock)
-  setupAllDocs({reqheaders: {Cookie: 'AuthSession="authcookie"'}}, nock)
+  setupAllDocs({reqheaders: {Cookie: 'AuthSession=authcookie'}}, 2, nock)
   const db = new DbdbCouch(getAuthConfig(nock))
 
-  return Promise.all([
-    connectAndList(t, db, 1),
-    connectAndList(t, db, 2)
+  Promise.all([
+    db.connect(),
+    db.connect()
   ])
+
+  .then((conns) => Promise.all([
+    new Promise((resolve, reject) => { conns[0].list((err0, body) => { t.falsy(err0); resolve(conns[0]) }) }),
+    new Promise((resolve, reject) => { conns[1].list((err1, body) => { t.falsy(err1); resolve(conns[1]) }) })
+  ]))
 
   .then((conns) => {
     t.is(conns[0], conns[1])
 
     db.disconnect()
     teardownNock(nock)
-  })
+    t.end()
+  }, t.end)
 })
 
 test('db.connect should reuse connection', (t) => {
