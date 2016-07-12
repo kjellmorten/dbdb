@@ -6,8 +6,6 @@ For now, only Cloudant/CouchDb is supported. I'll add new databases and more tas
 
 The module is not written for general use, but feel free. :)
 
-Oh, and it is written in ES6.
-
 ## Tasks available now:
 - connect
 - disconnect
@@ -19,6 +17,8 @@ Oh, and it is written in ES6.
 - deleteMany
 
 That's it.
+
+The signature for getView was changed in v1.2.0
 
 ## Install
 
