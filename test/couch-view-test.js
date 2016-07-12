@@ -46,10 +46,11 @@ function setupFnsSourcesAfterKey () {
 }
 
 function setupFnsEntriesBySource () {
-  let ent1 = { id: 'ent1', key: [ 'src2', '2015-05-23T00:00:00.000Z' ],
+  let ent1 = { id: 'ent1', key: [ 'src2', 'ent1' ],
     doc: { _id: 'ent1', type: 'entry', title: 'Entry 1', url: 'http://source2.com/ent1' } }
-  let ent2 = { id: 'ent2', key: [ 'src2', '2015-05-24T00:00:00.000Z' ],
+  let ent2 = { id: 'ent2', key: [ 'src2', 'ent2' ],
       doc: { _id: 'ent2', type: 'entry', title: 'Entry 2', url: 'http://source2.com/ent2' } }
+
   return setupNock()
     // Not descending
     .get('/feednstatus/_design/fns/_view/entries_by_source')
@@ -61,6 +62,11 @@ function setupFnsEntriesBySource () {
     .query({ include_docs: 'true', descending: 'true', inclusive_end: 'true',
       startkey: JSON.stringify(['src2', {}]), endkey: JSON.stringify(['src2'])})
     .reply(200, { rows: [ent2, ent1] })
+    // With two levels
+    .get('/feednstatus/_design/fns/_view/entries_by_source')
+    .query({ include_docs: 'true', descending: 'false', inclusive_end: 'true',
+      startkey: JSON.stringify(['src2', 'ent2']), endkey: JSON.stringify(['src2', 'ent2', {}])})
+    .reply(200, { rows: [ent2] })
 }
 
 // Tests -- view
@@ -263,7 +269,7 @@ test('db.getView should throw on connection failure', (t) => {
   })
 })
 
-test('db.getView should filter results', (t) => {
+test('db.getView should filter results by key', (t) => {
   const nock = setupFnsEntriesBySource()
   const db = new DbdbCouch(getConfig(nock))
 
@@ -279,7 +285,7 @@ test('db.getView should filter results', (t) => {
   })
 })
 
-test('db.getView should filter results descending', (t) => {
+test('db.getView should filter results by key descending', (t) => {
   const nock = setupFnsEntriesBySource()
   const db = new DbdbCouch(getConfig(nock))
 
@@ -290,6 +296,21 @@ test('db.getView should filter results descending', (t) => {
     t.is(obj.length, 2)
     t.is(obj[0].id, 'ent2')
     t.is(obj[1].id, 'ent1')
+
+    teardownNock()
+  })
+})
+
+test('db.getView should filter results by two level key', (t) => {
+  const nock = setupFnsEntriesBySource()
+  const db = new DbdbCouch(getConfig(nock))
+
+  return db.getView('fns:entries_by_source', false, {filter: 'src2/ent2'})
+
+  .then((obj) => {
+    t.true(Array.isArray(obj))
+    t.is(obj.length, 1)
+    t.is(obj[0].id, 'ent2')
 
     teardownNock()
   })
