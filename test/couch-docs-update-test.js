@@ -24,93 +24,20 @@ function setupGetDoc1 (nockScope) {
 function setupPostDoc1 (nockScope) {
   return setupNock(nockScope)
     .post('/feednstatus', { _id: 'doc1', _rev: '2774761001' })
-    .reply(201, {
-      ok: true,
-      id: 'doc1',
-      rev: '2774761004'
-    })
+    .reply(201, {ok: true, id: 'doc1', rev: '2774761004'})
 }
 
 function setupPostDoc2 (nockScope) {
   return setupNock(nockScope)
     .post('/feednstatus', { _id: 'doc2' })
-    .reply(201, {
-      ok: true,
-      id: 'doc2',
-      rev: '2774761002'
-    })
+    .reply(201, {ok: true, id: 'doc2', rev: '2774761002'})
 }
 
 function setupPostDoc3 (nockScope) {
   return setupNock(nockScope)
     .post('/feednstatus')
-    .reply(201, {
-      ok: true,
-      id: 'doc3',
-      rev: '2774761003'
-    })
+    .reply(201, {ok: true, id: 'doc3', rev: '2774761014'})
 }
-
-// Tests -- get document
-
-test('db.get', (t) => {
-  const db = new DbdbCouch(getConfig())
-
-  t.is(typeof db.get, 'function')
-})
-
-test('db.get should return doc', (t) => {
-  const nock = setupGetDoc1()
-  const db = new DbdbCouch(getConfig(nock))
-
-  return db.get('doc1')
-
-  .then((obj) => {
-    t.is(typeof obj, 'object')
-    t.is(obj.id, 'doc1')
-    t.is(obj.type, 'entry')
-    t.is(obj.title, 'The title')
-
-    teardownNock(nock)
-  })
-})
-
-test('db.get should throw for non-existing document', (t) => {
-  const db = new DbdbCouch(getConfig())
-
-  return db.get('doc2')
-
-  .catch((err) => {
-    t.true(err instanceof Error)
-    t.is(typeof err.message, 'string')
-    t.is(err.name, 'NotFoundError')
-  })
-})
-
-test('db.get should throw for missing docid', (t) => {
-  const db = new DbdbCouch(getConfig())
-
-  return db.get()
-
-  .catch((err) => {
-    t.true(err instanceof Error)
-  })
-})
-
-test('db.get should throw when connection fails', (t) => {
-  const nock = setupGetDoc1()
-  const db = new DbdbCouch(getConfig(nock))
-  sinon.stub(db, 'connect').returns(Promise.reject('Failure'))
-
-  return db.get('doc1')
-
-  .catch((err) => {
-    t.is(err, 'Failure')
-
-    db.connect.restore()
-    teardownNock(nock)
-  })
-})
 
 // Tests -- insert document
 
