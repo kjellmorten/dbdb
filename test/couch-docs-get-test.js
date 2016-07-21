@@ -129,6 +129,22 @@ test('db.get should return several docs', (t) => {
   })
 })
 
+test('db.get should not call server for empty array', (t) => {
+  const nock = setupPostDocs()
+  const db = new DbdbCouch(getConfig(nock))
+
+  return db.get([])
+
+  .then((docs) => {
+    // If we get here, there was no roundtrip to server,
+    // as there is no path to handle this call
+    t.true(Array.isArray(docs))
+    t.is(docs.length, 0)
+
+    teardownNock(nock)
+  })
+})
+
 test('db.get should return null for missing docs', (t) => {
   const nock = setupPostDocsWithUnknown()
   const db = new DbdbCouch(getConfig(nock))
