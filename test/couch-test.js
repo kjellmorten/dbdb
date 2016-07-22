@@ -52,6 +52,25 @@ test('db.dbType should be couchdb', (t) => {
   t.is(db.dbType, 'couchdb')
 })
 
+// Tests -- config
+
+test('should set config', (t) => {
+  const config = {url: 'http://fake.com', db: 'oranges'}
+
+  const db = new DbdbCouch(config)
+
+  t.deepEqual(db.config, config)
+})
+
+test('should clone config', (t) => {
+  const config = {url: 'http://fake.com', db: 'oranges'}
+  Object.freeze(config)
+
+  const db = new DbdbCouch(config)
+
+  t.not(db.config, config)
+})
+
 // Tests -- database connection
 
 test('db.connect should exist', (t) => {

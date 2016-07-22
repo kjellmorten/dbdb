@@ -68,6 +68,26 @@ test('db.insertMany should return _error and _reason', (t) => {
   })
 })
 
+test('db.insertMany should not alter given doc objects', (t) => {
+  const nock = setupBulk()
+  const db = new DbdbCouch(getConfig(nock))
+  const docs = [
+    {type: 'entry', title: 'First title'},
+    {type: 'entry', title: 'Second title'}
+  ]
+  Object.freeze(docs)
+  Object.freeze(docs[0])
+  Object.freeze(docs[1])
+
+  return db.insertMany(docs)
+
+  .then((obj) => {
+    t.pass()
+
+    teardownNock(nock)
+  })
+})
+
 test('db.insertMany should throw for missing docs', (t) => {
   const db = new DbdbCouch(getConfig())
 
@@ -148,7 +168,7 @@ test('db.deleteMany should mark as deleted', (t) => {
   })
 })
 
-test('db.deleteMany should return input', (t) => {
+test('db.deleteMany should return array of deleted docs', (t) => {
   const ret = []
   const db = new DbdbCouch(getConfig())
   sinon.stub(db, 'insertMany').returns(Promise.resolve(ret))
@@ -156,7 +176,27 @@ test('db.deleteMany should return input', (t) => {
   return db.deleteMany([])
 
   .then((json) => {
-    t.is(json, ret)
+    t.deepEqual(json, ret)
+
+    db.insertMany.restore()
+  })
+})
+
+test('db.deleteMany should not alter given doc objects', (t) => {
+  const db = new DbdbCouch(getConfig())
+  sinon.stub(db, 'insertMany').returns(Promise.resolve([]))
+  const docs = [
+    { id: 'ent1', type: 'entry', title: 'First title' },
+    { id: 'ent2', type: 'entry', title: 'Second title' }
+  ]
+  Object.freeze(docs)
+  Object.freeze(docs[0])
+  Object.freeze(docs[1])
+
+  return db.deleteMany(docs)
+
+  .then(() => {
+    t.pass()
 
     db.insertMany.restore()
   })

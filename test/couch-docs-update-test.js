@@ -109,6 +109,21 @@ test('db.insert should updating existing document', (t) => {
   })
 })
 
+test('db.insert should not alter given doc object', (t) => {
+  const nock = setupPostDoc3()
+  const doc = { type: 'entry' }
+  Object.freeze(doc)
+  const db = new DbdbCouch(getConfig(nock))
+
+  return db.insert(doc)
+
+  .then((obj) => {
+    t.pass()
+
+    teardownNock(nock)
+  })
+})
+
 test('db.insert should reject for missing document object', (t) => {
   const db = new DbdbCouch(getConfig())
 
@@ -233,6 +248,22 @@ test('db.update should update provided data only', (t) => {
     t.is(obj.title, 'Another brand new title')
     t.is(obj.description, 'Described in detail')
     t.is(obj.type, 'entry')
+
+    teardownNock(nock)
+  })
+})
+
+test('db.update should not alter given doc object', (t) => {
+  const nock = setupGetDoc1()
+  setupPostDoc1(nock)
+  const db = new DbdbCouch(getConfig(nock))
+  const doc = {id: 'doc1', type: 'entry'}
+  Object.freeze(doc)
+
+  return db.update(doc)
+
+  .then((obj) => {
+    t.pass()
 
     teardownNock(nock)
   })

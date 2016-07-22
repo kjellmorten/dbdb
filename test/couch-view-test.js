@@ -144,7 +144,7 @@ test('db.getView should return paged view through options', (t) => {
   const nock = setupFnsSourcesPaged()
   const db = new DbdbCouch(getConfig(nock))
 
-  return db.getView('fns:sources', false, {pageSize: 1})
+  return db.getView('fns:sources', {pageSize: 1})
 
   .then((obj) => {
     t.is(obj.length, 1)
@@ -158,7 +158,7 @@ test('db.getView should return second page through options', (t) => {
   const nock = setupFnsSourcesPaged(1)
   const db = new DbdbCouch(getConfig(nock))
 
-  return db.getView('fns:sources', false, {pageSize: 1, pageStart: 1})
+  return db.getView('fns:sources', {pageSize: 1, pageStart: 1})
 
   .then((obj) => {
     // Getting results here means we got the second page.
@@ -173,7 +173,7 @@ test('db.getView should start after specific key', (t) => {
   const nock = setupFnsSourcesAfterKey()
   const db = new DbdbCouch(getConfig(nock))
 
-  return db.getView('fns:sources', false, {startAfter: ['2015-05-24T00:00:00.000Z', 'src2'], pageSize: 1})
+  return db.getView('fns:sources', {startAfter: ['2015-05-24T00:00:00.000Z', 'src2'], pageSize: 1})
 
   .then((obj) => {
     t.is(obj.length, 1)
@@ -241,6 +241,21 @@ test('db.getView should use value when present', (t) => {
   })
 })
 
+test('db.getView should not alter options object', (t) => {
+  const nock = setupFnsSourcesPaged()
+  const db = new DbdbCouch(getConfig(nock))
+  const options = {pageSize: 1}
+  Object.freeze(options)
+
+  return db.getView('fns:sources', options)
+
+  .then((obj) => {
+    t.pass()
+
+    teardownNock()
+  })
+})
+
 test('db.getView should throw on database error', (t) => {
   const nock = setupNock()
     .get('/feednstatus/_design/fns/_view/sources')
@@ -273,7 +288,7 @@ test('db.getView should filter results by key', (t) => {
   const nock = setupFnsEntriesBySource()
   const db = new DbdbCouch(getConfig(nock))
 
-  return db.getView('fns:entries_by_source', false, {filter: 'src2'})
+  return db.getView('fns:entries_by_source', {filter: 'src2'})
 
   .then((obj) => {
     t.true(Array.isArray(obj))
@@ -289,7 +304,7 @@ test('db.getView should filter results by key descending', (t) => {
   const nock = setupFnsEntriesBySource()
   const db = new DbdbCouch(getConfig(nock))
 
-  return db.getView('fns:entries_by_source', true, {filter: 'src2'})
+  return db.getView('fns:entries_by_source', {filter: 'src2', desc: true})
 
   .then((obj) => {
     t.true(Array.isArray(obj))
@@ -305,7 +320,7 @@ test('db.getView should filter results by two level key', (t) => {
   const nock = setupFnsEntriesBySource()
   const db = new DbdbCouch(getConfig(nock))
 
-  return db.getView('fns:entries_by_source', false, {filter: 'src2/ent2'})
+  return db.getView('fns:entries_by_source', {filter: 'src2/ent2'})
 
   .then((obj) => {
     t.true(Array.isArray(obj))
