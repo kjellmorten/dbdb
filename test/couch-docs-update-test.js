@@ -39,6 +39,18 @@ function setupPostDoc3 (nockScope) {
     .reply(201, {ok: true, id: 'doc3', rev: '2774761014'})
 }
 
+function setupPostWithConflict (nockScope) {
+  return setupNock(nockScope)
+    .post('/feednstatus', { _id: 'doc4' })
+    .reply(409, {error: 'conflict', reason: 'Document update conflict.'})
+}
+
+function setupPostWithError (nockScope) {
+  return setupNock(nockScope)
+    .post('/feednstatus', { _id: 'doc5' })
+    .reply(409, {error: 'other', reason: 'Other error.'})
+}
+
 // Tests -- insert document
 
 test('db.insert should exist', (t) => {
@@ -97,7 +109,7 @@ test('db.insert should updating existing document', (t) => {
   })
 })
 
-test('db.insert should throw for missing document object', (t) => {
+test('db.insert should reject for missing document object', (t) => {
   const db = new DbdbCouch(getConfig())
 
   return db.insert()
@@ -107,9 +119,10 @@ test('db.insert should throw for missing document object', (t) => {
   })
 })
 
-test('db.insert should throw when connection fails', (t) => {
+test('db.insert should reject when connection fails', (t) => {
+  t.plan(1)
   const nock = setupPostDoc1()
-  const doc = { id: 'doc1', type: 'entry' }
+  const doc = { id: 'doc1', type: 'entry', _rev: '2774761001' }
   const db = new DbdbCouch(getConfig(nock))
   sinon.stub(db, 'connect').returns(Promise.reject('Failure'))
 
@@ -119,6 +132,38 @@ test('db.insert should throw when connection fails', (t) => {
     t.is(err, 'Failure')
 
     db.connect.restore()
+    teardownNock(nock)
+  })
+})
+
+test('db.insert should reject on insert conflict', (t) => {
+  t.plan(2)
+  const nock = setupPostWithConflict()
+  const doc = { id: 'doc4' }
+  const db = new DbdbCouch(getConfig(nock))
+
+  return db.insert(doc)
+
+  .catch((err) => {
+    t.truthy(err)
+    t.is(err.name, 'ConflictError')
+
+    teardownNock(nock)
+  })
+})
+
+test('db.insert should reject on other insert error', (t) => {
+  t.plan(2)
+  const nock = setupPostWithError()
+  const doc = { id: 'doc5' }
+  const db = new DbdbCouch(getConfig(nock))
+
+  return db.insert(doc)
+
+  .catch((err) => {
+    t.truthy(err)
+    t.is(err.name, 'Error')
+
     teardownNock(nock)
   })
 })
