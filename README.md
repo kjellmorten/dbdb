@@ -13,12 +13,13 @@ The module is not written for general use, but feel free. :)
 - getView
 - insert
 - update
+- delete
 - insertMany
 - deleteMany
 
 That's it.
 
-The signature for getView was changed in v1.2.0
+The signature for getView was changed in v1.2.0 and v1.3.0
 
 ## Install
 
