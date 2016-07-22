@@ -1,11 +1,9 @@
 import test from 'ava'
 import sinon from 'sinon'
 import {setupNock, teardownNock} from './helpers/http'
+import getConfig from './helpers/getConfig'
 
 import DbdbCouch from '../lib/couchdb'
-
-// Config for connections
-const getConfig = (nock) => ({url: (nock) ? nock.basePath : 'http://test.url', db: 'feednstatus'})
 
 // Helpers
 

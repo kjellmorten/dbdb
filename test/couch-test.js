@@ -1,10 +1,8 @@
 import test from 'ava'
 import {setupNock, teardownNock} from './helpers/http'
+import getConfig from './helpers/getConfig'
 
 import DbdbCouch from '../lib/couchdb'
-
-// Config without authorization
-const getConfig = (nock) => ({url: (nock) ? nock.basePath : 'http://test.url', db: 'feednstatus'})
 
 // Config with key and password
 const getAuthConfig = (nock) => ({

@@ -1,11 +1,9 @@
 import test from 'ava'
 import sinon from 'sinon'
 import {setupNock, teardownNock} from './helpers/http'
+import getConfig from './helpers/getConfig'
 
 import DbdbCouch from '../lib/couchdb'
-
-// Config for connections
-const getConfig = (nock) => ({url: (nock) ? nock.basePath : 'http://test.url', db: 'feednstatus'})
 
 // Helpers
 
@@ -18,6 +16,15 @@ function setupGetDoc1 (nockScope) {
       type: 'entry',
       title: 'The title',
       createdAt: '2015-05-23'
+    })
+}
+
+function setupGetDoc0 (nockScope) {
+  return setupNock(nockScope)
+    .get('/feednstatus/doc0')
+    .reply(404, {
+      error: 'not_found',
+      reason: 'missing'
     })
 }
 
@@ -73,14 +80,17 @@ test('db.get should return doc', (t) => {
 })
 
 test('db.get should throw for non-existing document', (t) => {
-  const db = new DbdbCouch(getConfig())
+  const nock = setupGetDoc0()
+  const db = new DbdbCouch(getConfig(nock))
 
-  return db.get('doc2')
+  return db.get('doc0')
 
   .catch((err) => {
     t.true(err instanceof Error)
     t.is(typeof err.message, 'string')
     t.is(err.name, 'NotFoundError')
+
+    teardownNock(nock)
   })
 })
 
