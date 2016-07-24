@@ -11,60 +11,71 @@ function setupFnsSources (desc) {
   return setupNock()
     .get('/feednstatus/_design/fns/_view/sources')
     .query({ include_docs: 'true', descending: (desc) ? 'true' : 'false' })
-    .reply(200, { rows: [
-      { id: 'src1', key: [ '2015-05-23T00:00:00.000Z', 'src1' ],
-      doc: { _id: 'src1', type: 'source', name: 'Src 1', url: 'http://source1.com' } },
-      { id: 'src2', key: [ '2015-05-24T00:00:00.000Z', 'src2' ],
-      doc: { _id: 'src2', type: 'source', name: 'Src 2', url: 'http://source2.com' } }
-    ] })
+      .reply(200, { rows: [
+        { id: 'src1', key: [ '2015-05-23T00:00:00.000Z', 'src1' ],
+        doc: { _id: 'src1', type: 'source', name: 'Src 1', url: 'http://source1.com' } },
+        { id: 'src2', key: [ '2015-05-24T00:00:00.000Z', 'src2' ],
+        doc: { _id: 'src2', type: 'source', name: 'Src 2', url: 'http://source2.com' } }
+      ] })
 }
 
 function setupFnsSourcesPaged (skip) {
-  skip = skip || 0
+  const query = { include_docs: 'true', descending: 'false', limit: '1' }
+  if (skip) {
+    query.skip = skip.toString()
+  }
   return setupNock()
     .get('/feednstatus/_design/fns/_view/sources')
-    .query({ include_docs: 'true', descending: 'false', limit: '1', skip: skip.toString() })
-    .reply(200, { rows: [
-      { id: 'src2', key: [ '2015-05-24T00:00:00.000Z', 'src2' ],
-      doc: { _id: 'src2', type: 'source', name: 'Src 2', url: 'http://source2.com' } }
-    ] })
+    .query(query)
+      .reply(200, { rows: [
+        { id: 'src2', key: [ '2015-05-24T00:00:00.000Z', 'src2' ],
+        doc: { _id: 'src2', type: 'source', name: 'Src 2', url: 'http://source2.com' } }
+      ] })
 }
 
 function setupFnsSourcesAfterKey () {
   return setupNock()
     .get('/feednstatus/_design/fns/_view/sources')
-    .query({ include_docs: 'true', descending: 'false', limit: '2',
+    .query({ include_docs: 'true', descending: 'false', limit: '1',
       startkey: JSON.stringify([ '2015-05-24T00:00:00.000Z', 'src2' ]) })
-    .reply(200, { rows: [
-      { id: 'src2', key: [ '2015-05-24T00:00:00.000Z', 'src2' ],
-      doc: { _id: 'src2', type: 'source', name: 'Src 2', url: 'http://source2.com' } },
-      { id: 'src1', key: [ '2015-05-23T00:00:00.000Z', 'src1' ],
-      doc: { _id: 'src1', type: 'source', name: 'Src 1', url: 'http://source1.com' } }
-    ] })
+      .reply(200, { rows: [
+        { id: 'src2', key: [ '2015-05-24T00:00:00.000Z', 'src2' ],
+        doc: { _id: 'src2', type: 'source', name: 'Src 2', url: 'http://source2.com' } }
+      ] })
 }
 
-function setupFnsEntriesBySource () {
-  let ent1 = { id: 'ent1', key: [ 'src2', 'ent1' ],
+function setupFnsEntriesByFeed () {
+  let ent1 = { id: 'ent1', key: [ 'acc2', 'feed1', '2015-05-23T00:00:00.000Z', 'ent1' ],
     doc: { _id: 'ent1', type: 'entry', title: 'Entry 1', url: 'http://source2.com/ent1' } }
-  let ent2 = { id: 'ent2', key: [ 'src2', 'ent2' ],
+  let ent2 = { id: 'ent2', key: [ 'acc2', 'feed2', '2015-05-24T00:00:00.000Z', 'ent2' ],
       doc: { _id: 'ent2', type: 'entry', title: 'Entry 2', url: 'http://source2.com/ent2' } }
 
   return setupNock()
     // Not descending
-    .get('/feednstatus/_design/fns/_view/entries_by_source')
+    .get('/feednstatus/_design/fns/_view/entries_by_feed')
     .query({ include_docs: 'true', descending: 'false', inclusive_end: 'true',
-      startkey: JSON.stringify(['src2']), endkey: JSON.stringify(['src2', {}])})
-    .reply(200, { rows: [ent1, ent2] })
+      startkey: JSON.stringify(['acc2']), endkey: JSON.stringify(['acc2', {}])})
+      .reply(200, { rows: [ent1, ent2] })
     // Desscending
-    .get('/feednstatus/_design/fns/_view/entries_by_source')
+    .get('/feednstatus/_design/fns/_view/entries_by_feed')
     .query({ include_docs: 'true', descending: 'true', inclusive_end: 'true',
-      startkey: JSON.stringify(['src2', {}]), endkey: JSON.stringify(['src2'])})
-    .reply(200, { rows: [ent2, ent1] })
+      startkey: JSON.stringify(['acc2', {}]), endkey: JSON.stringify(['acc2'])})
+      .reply(200, { rows: [ent2, ent1] })
     // With two levels
-    .get('/feednstatus/_design/fns/_view/entries_by_source')
+    .get('/feednstatus/_design/fns/_view/entries_by_feed')
     .query({ include_docs: 'true', descending: 'false', inclusive_end: 'true',
-      startkey: JSON.stringify(['src2', 'ent2']), endkey: JSON.stringify(['src2', 'ent2', {}])})
-    .reply(200, { rows: [ent2] })
+      startkey: JSON.stringify(['acc2', 'feed2']), endkey: JSON.stringify(['acc2', 'feed2', {}])})
+      .reply(200, { rows: [ent2] })
+    .get('/feednstatus/_design/fns/_view/entries_by_feed')
+    .query({ include_docs: 'true', descending: 'false', inclusive_end: 'true',
+      startkey: JSON.stringify(['acc2', 'feed2', '2015-05-24T00:00:00.000Z', 'ent2']),
+      endkey: JSON.stringify(['acc2', 'feed2', {}])})
+      .reply(200, { rows: [ent2] })
+    .get('/feednstatus/_design/fns/_view/entries_by_feed')
+    .query({ include_docs: 'true', descending: 'true', inclusive_end: 'true',
+      startkey: JSON.stringify(['acc2', 'feed2', '2015-05-24T00:00:00.000Z', 'ent2']),
+      endkey: JSON.stringify(['acc2', 'feed2'])})
+      .reply(200, { rows: [ent2] })
 }
 
 // Tests -- view
@@ -167,15 +178,92 @@ test('db.getView should return second page through options', (t) => {
   })
 })
 
-test('db.getView should start after specific key', (t) => {
+test('db.getView should start with specific key', (t) => {
   const nock = setupFnsSourcesAfterKey()
   const db = new DbdbCouch(getConfig(nock))
 
-  return db.getView('fns:sources', {startAfter: ['2015-05-24T00:00:00.000Z', 'src2'], max: 1})
+  return db.getView('fns:sources', {firstKey: ['2015-05-24T00:00:00.000Z', 'src2'], max: 1})
 
   .then((obj) => {
     t.is(obj.length, 1)
-    t.is(obj[0].id, 'src1')
+    t.is(obj[0].id, 'src2')
+
+    teardownNock()
+  })
+})
+
+test('db.getView should filter results by key', (t) => {
+  const nock = setupFnsEntriesByFeed()
+  const db = new DbdbCouch(getConfig(nock))
+
+  return db.getView('fns:entries_by_feed', {filter: 'acc2'})
+
+  .then((obj) => {
+    t.true(Array.isArray(obj))
+    t.is(obj.length, 2)
+    t.is(obj[0].id, 'ent1')
+    t.is(obj[1].id, 'ent2')
+
+    teardownNock()
+  })
+})
+
+test('db.getView should filter results by key descending', (t) => {
+  const nock = setupFnsEntriesByFeed()
+  const db = new DbdbCouch(getConfig(nock))
+
+  return db.getView('fns:entries_by_feed', {filter: 'acc2', desc: true})
+
+  .then((obj) => {
+    t.true(Array.isArray(obj))
+    t.is(obj.length, 2)
+    t.is(obj[0].id, 'ent2')
+    t.is(obj[1].id, 'ent1')
+
+    teardownNock()
+  })
+})
+
+test('db.getView should filter results by two level key', (t) => {
+  const nock = setupFnsEntriesByFeed()
+  const db = new DbdbCouch(getConfig(nock))
+
+  return db.getView('fns:entries_by_feed', {filter: 'acc2/feed2'})
+
+  .then((obj) => {
+    t.true(Array.isArray(obj))
+    t.is(obj.length, 1)
+    t.is(obj[0].id, 'ent2')
+
+    teardownNock()
+  })
+})
+
+test('db.getView should filter and start with specific key', (t) => {
+  const nock = setupFnsEntriesByFeed()
+  const db = new DbdbCouch(getConfig(nock))
+
+  return db.getView('fns:entries_by_feed',
+    {filter: 'acc2/feed2', firstKey: ['2015-05-24T00:00:00.000Z', 'ent2']})
+
+  .then((obj) => {
+    t.is(obj.length, 1)
+    t.is(obj[0].id, 'ent2')
+
+    teardownNock()
+  })
+})
+
+test('db.getView should filter and start with specific key descending', (t) => {
+  const nock = setupFnsEntriesByFeed()
+  const db = new DbdbCouch(getConfig(nock))
+
+  return db.getView('fns:entries_by_feed',
+    {filter: 'acc2/feed2', firstKey: ['2015-05-24T00:00:00.000Z', 'ent2'], desc: true})
+
+  .then((obj) => {
+    t.is(obj.length, 1)
+    t.is(obj[0].id, 'ent2')
 
     teardownNock()
   })
@@ -279,52 +367,5 @@ test('db.getView should throw on connection failure', (t) => {
     t.is(err, 'Failure')
 
     db.connect.restore()
-  })
-})
-
-test('db.getView should filter results by key', (t) => {
-  const nock = setupFnsEntriesBySource()
-  const db = new DbdbCouch(getConfig(nock))
-
-  return db.getView('fns:entries_by_source', {filter: 'src2'})
-
-  .then((obj) => {
-    t.true(Array.isArray(obj))
-    t.is(obj.length, 2)
-    t.is(obj[0].id, 'ent1')
-    t.is(obj[1].id, 'ent2')
-
-    teardownNock()
-  })
-})
-
-test('db.getView should filter results by key descending', (t) => {
-  const nock = setupFnsEntriesBySource()
-  const db = new DbdbCouch(getConfig(nock))
-
-  return db.getView('fns:entries_by_source', {filter: 'src2', desc: true})
-
-  .then((obj) => {
-    t.true(Array.isArray(obj))
-    t.is(obj.length, 2)
-    t.is(obj[0].id, 'ent2')
-    t.is(obj[1].id, 'ent1')
-
-    teardownNock()
-  })
-})
-
-test('db.getView should filter results by two level key', (t) => {
-  const nock = setupFnsEntriesBySource()
-  const db = new DbdbCouch(getConfig(nock))
-
-  return db.getView('fns:entries_by_source', {filter: 'src2/ent2'})
-
-  .then((obj) => {
-    t.true(Array.isArray(obj))
-    t.is(obj.length, 1)
-    t.is(obj[0].id, 'ent2')
-
-    teardownNock()
   })
 })
