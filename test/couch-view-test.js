@@ -142,7 +142,7 @@ test('db.getView should return paged view through options', (t) => {
   const nock = setupFnsSourcesPaged()
   const db = new DbdbCouch(getConfig(nock))
 
-  return db.getView('fns:sources', {pageSize: 1})
+  return db.getView('fns:sources', {max: 1})
 
   .then((obj) => {
     t.is(obj.length, 1)
@@ -156,7 +156,7 @@ test('db.getView should return second page through options', (t) => {
   const nock = setupFnsSourcesPaged(1)
   const db = new DbdbCouch(getConfig(nock))
 
-  return db.getView('fns:sources', {pageSize: 1, pageStart: 1})
+  return db.getView('fns:sources', {max: 1, first: 1})
 
   .then((obj) => {
     // Getting results here means we got the second page.
@@ -171,7 +171,7 @@ test('db.getView should start after specific key', (t) => {
   const nock = setupFnsSourcesAfterKey()
   const db = new DbdbCouch(getConfig(nock))
 
-  return db.getView('fns:sources', {startAfter: ['2015-05-24T00:00:00.000Z', 'src2'], pageSize: 1})
+  return db.getView('fns:sources', {startAfter: ['2015-05-24T00:00:00.000Z', 'src2'], max: 1})
 
   .then((obj) => {
     t.is(obj.length, 1)
@@ -242,7 +242,7 @@ test('db.getView should use value when present', (t) => {
 test('db.getView should not alter options object', (t) => {
   const nock = setupFnsSourcesPaged()
   const db = new DbdbCouch(getConfig(nock))
-  const options = {pageSize: 1}
+  const options = {max: 1}
   Object.freeze(options)
 
   return db.getView('fns:sources', options)
