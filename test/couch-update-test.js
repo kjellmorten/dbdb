@@ -33,7 +33,8 @@ function setupPostDoc2 (nockScope) {
 
 function setupPostDoc3 (nockScope) {
   return setupNock(nockScope)
-    .post('/feednstatus')
+    .post('/feednstatus', (body) =>
+      (body.id === undefined && body._id === undefined))
     .reply(201, {ok: true, id: 'doc3', rev: '2774761014'})
 }
 
@@ -81,6 +82,20 @@ test('db.insert should insert new document', (t) => {
 test('db.insert should insert and get id from database', (t) => {
   const nock = setupPostDoc3()
   const doc = { type: 'entry' }
+  const db = new DbdbCouch(getConfig(nock))
+
+  return db.insert(doc)
+
+  .then((obj) => {
+    t.is(obj.id, 'doc3')
+
+    teardownNock(nock)
+  })
+})
+
+test('db.insert should not include null id in request', (t) => {
+  const nock = setupPostDoc3()
+  const doc = { id: null, type: 'entry' }
   const db = new DbdbCouch(getConfig(nock))
 
   return db.insert(doc)
