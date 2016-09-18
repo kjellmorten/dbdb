@@ -437,6 +437,26 @@ test('db.getView should use value when present', (t) => {
   })
 })
 
+test('db.getView should query without docs for option keysOnly', (t) => {
+  const nock = setupNock()
+    .get('/feednstatus/_design/fns/_view/sources')
+    .query({ include_docs: 'false', descending: 'false' })
+    .reply(200, { rows: [
+      { id: 'src1', value: { _id: 'src1', type: 'source' }, doc: null }
+    ] })
+  const db = new DbdbCouch(getConfig(nock))
+
+  return db.getView('fns:sources', {keysOnly: true})
+
+  .then((obj) => {
+    t.true(Array.isArray(obj))
+    t.is(obj.length, 1)
+    t.is(obj[0].id, 'src1')
+
+    teardownNock()
+  })
+})
+
 test('db.getView should not alter options object', (t) => {
   const nock = setupPaged()
   const db = new DbdbCouch(getConfig(nock))
