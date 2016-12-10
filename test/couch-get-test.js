@@ -33,11 +33,11 @@ function setupPostDocs (nockScope) {
     .post('/feednstatus/_all_docs', {keys: ['doc1', 'doc2']})
     .query({include_docs: 'true'})
     .reply(200, {
-      total_rows: 2496, offset: 0, rows: [
-        {id: 'doc1', key: 'doc1', value: {rev: '8593'}, doc:
-          {_id: 'doc1', _rev: '8593', type: 'entry', title: 'The title'}},
-        {id: 'doc2', key: 'doc2', value: {rev: '8594'}, doc:
-          {_id: 'doc2', _rev: '8594', type: 'entry', title: 'Another title'}}
+      total_rows: 2496,
+      offset: 0,
+      rows: [
+        {id: 'doc1', key: 'doc1', value: {rev: '8593'}, doc: {_id: 'doc1', _rev: '8593', type: 'entry', title: 'The title'}},
+        {id: 'doc2', key: 'doc2', value: {rev: '8594'}, doc: {_id: 'doc2', _rev: '8594', type: 'entry', title: 'Another title'}}
       ]
     })
 }
@@ -47,9 +47,10 @@ function setupPostDocsWithUnknown (nockScope) {
     .post('/feednstatus/_all_docs', {keys: ['doc1', 'doc3']})
     .query({include_docs: 'true'})
     .reply(200, {
-      total_rows: 2496, offset: 0, rows: [
-        {id: 'doc1', key: 'doc1', value: {rev: '8593'}, doc:
-          {_id: 'doc1', _rev: '8593', type: 'entry', title: 'The title'}},
+      total_rows: 2496,
+      offset: 0,
+      rows: [
+        {id: 'doc1', key: 'doc1', value: {rev: '8593'}, doc: {_id: 'doc1', _rev: '8593', type: 'entry', title: 'The title'}},
         {key: 'doc3', error: 'not_found'}
       ]
     })

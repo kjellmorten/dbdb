@@ -13,10 +13,8 @@ function setupView (desc) {
     .get('/feednstatus/_design/fns/_view/sources')
     .query({include_docs: 'true', descending: (desc) ? 'true' : 'false'})
       .reply(200, {rows: [
-        {id: 'src1', key: ['2015-05-23T00:00:00.000Z', 'src1'],
-        doc: {_id: 'src1', type: 'source', name: 'Src 1', url: 'http://source1.com'}},
-        {id: 'src2', key: [ '2015-05-24T00:00:00.000Z', 'src2' ],
-        doc: {_id: 'src2', type: 'source', name: 'Src 2', url: 'http://source2.com'}}
+        {id: 'src1', key: ['2015-05-23T00:00:00.000Z', 'src1'], doc: {_id: 'src1', type: 'source', name: 'Src 1', url: 'http://source1.com'}},
+        {id: 'src2', key: [ '2015-05-24T00:00:00.000Z', 'src2' ], doc: {_id: 'src2', type: 'source', name: 'Src 2', url: 'http://source2.com'}}
       ]})
 }
 
@@ -29,8 +27,7 @@ function setupPaged (skip) {
     .get('/feednstatus/_design/fns/_view/sources')
     .query(query)
       .reply(200, {rows: [
-        {id: 'src2', key: ['2015-05-24T00:00:00.000Z', 'src2'],
-        doc: {_id: 'src2', type: 'source', name: 'Src 2', url: 'http://source2.com'}}
+        {id: 'src2', key: ['2015-05-24T00:00:00.000Z', 'src2'], doc: {_id: 'src2', type: 'source', name: 'Src 2', url: 'http://source2.com'}}
       ]})
 }
 
@@ -38,77 +35,58 @@ function setupFirstKey () {
   return setupNock()
     // First key as an array
     .get('/feednstatus/_design/fns/_view/sources')
-    .query({include_docs: 'true', descending: 'false', limit: '1',
-      startkey: JSON.stringify(['2015-05-24T00:00:00.000Z', 'src2'])})
+    .query({include_docs: 'true', descending: 'false', limit: '1', startkey: JSON.stringify(['2015-05-24T00:00:00.000Z', 'src2'])})
       .reply(200, {rows: [
-        {id: 'src2', key: ['2015-05-24T00:00:00.000Z', 'src2'],
-        doc: {_id: 'src2', type: 'source', name: 'Src 2', url: 'http://source2.com'}}
+        {id: 'src2', key: ['2015-05-24T00:00:00.000Z', 'src2'], doc: {_id: 'src2', type: 'source', name: 'Src 2', url: 'http://source2.com'}}
       ]})
     // First key as a string
     .get('/feednstatus/_design/fns/_view/sources')
-    .query({include_docs: 'true', descending: 'false', limit: '1',
-      startkey: JSON.stringify('src2')})
+    .query({include_docs: 'true', descending: 'false', limit: '1', startkey: JSON.stringify('src2')})
       .reply(200, {rows: [
-        {id: 'src2', key: 'src2',
-        doc: {_id: 'src2', type: 'source', name: 'Src 2', url: 'http://source2.com'}}
+        {id: 'src2', key: 'src2', doc: {_id: 'src2', type: 'source', name: 'Src 2', url: 'http://source2.com'}}
       ]})
 }
 
 function setupFilter () {
-  let ent1 = {id: 'ent1', key: ['acc2', 'feed1', '2015-05-23T00:00:00.000Z', 'ent1'],
-    doc: {_id: 'ent1', type: 'entry', title: 'Entry 1', url: 'http://source2.com/ent1'}}
-  let ent2 = {id: 'ent2', key: ['acc2', 'feed2', '2015-05-24T00:00:00.000Z', 'ent2'],
-      doc: {_id: 'ent2', type: 'entry', title: 'Entry 2', url: 'http://source2.com/ent2'}}
+  let ent1 = {id: 'ent1', key: ['acc2', 'feed1', '2015-05-23T00:00:00.000Z', 'ent1'], doc: {_id: 'ent1', type: 'entry', title: 'Entry 1', url: 'http://source2.com/ent1'}}
+  let ent2 = {id: 'ent2', key: ['acc2', 'feed2', '2015-05-24T00:00:00.000Z', 'ent2'], doc: {_id: 'ent2', type: 'entry', title: 'Entry 2', url: 'http://source2.com/ent2'}}
 
   return setupNock()
     // String key
     .get('/feednstatus/_design/fns/_view/entries_by_feed')
-    .query({include_docs: 'true', descending: 'false', inclusive_end: 'true',
-      startkey: JSON.stringify('acc2'), endkey: JSON.stringify('acc2')})
+    .query({include_docs: 'true', descending: 'false', inclusive_end: 'true', startkey: JSON.stringify('acc2'), endkey: JSON.stringify('acc2')})
       .reply(200, {rows: [ent1, ent2]})
     // Array key
     .get('/feednstatus/_design/fns/_view/entries_by_feed')
-    .query({include_docs: 'true', descending: 'false', inclusive_end: 'true',
-      startkey: JSON.stringify(['acc2']), endkey: JSON.stringify(['acc2', {}])})
+    .query({include_docs: 'true', descending: 'false', inclusive_end: 'true', startkey: JSON.stringify(['acc2']), endkey: JSON.stringify(['acc2', {}])})
       .reply(200, {rows: [ent1, ent2]})
     // Object key
     .get('/feednstatus/_design/fns/_view/entries_by_feed')
-    .query({include_docs: 'true', descending: 'false', inclusive_end: 'true',
-      startkey: JSON.stringify({id: 'acc2'}), endkey: JSON.stringify({id: 'acc2'})})
+    .query({include_docs: 'true', descending: 'false', inclusive_end: 'true', startkey: JSON.stringify({id: 'acc2'}), endkey: JSON.stringify({id: 'acc2'})})
       .reply(200, {rows: [ent1, ent2]})
     // Array key desscending
     .get('/feednstatus/_design/fns/_view/entries_by_feed')
-    .query({include_docs: 'true', descending: 'true', inclusive_end: 'true',
-      startkey: JSON.stringify(['acc2', {}]), endkey: JSON.stringify(['acc2'])})
+    .query({include_docs: 'true', descending: 'true', inclusive_end: 'true', startkey: JSON.stringify(['acc2', {}]), endkey: JSON.stringify(['acc2'])})
       .reply(200, {rows: [ent2, ent1]})
     // With two levels
     .get('/feednstatus/_design/fns/_view/entries_by_feed')
-    .query({include_docs: 'true', descending: 'false', inclusive_end: 'true',
-      startkey: JSON.stringify(['acc2', 'feed2']), endkey: JSON.stringify(['acc2', 'feed2', {}])})
+    .query({include_docs: 'true', descending: 'false', inclusive_end: 'true', startkey: JSON.stringify(['acc2', 'feed2']), endkey: JSON.stringify(['acc2', 'feed2', {}])})
       .reply(200, {rows: [ent2]})
     // With filter and one level firstKey
     .get('/feednstatus/_design/fns/_view/entries_by_feed')
-    .query({include_docs: 'true', descending: 'false', inclusive_end: 'true',
-      startkey: JSON.stringify(['acc2', 'feed2', '2015-05-24T00:00:00.000Z']),
-      endkey: JSON.stringify(['acc2', 'feed2', {}])})
+    .query({include_docs: 'true', descending: 'false', inclusive_end: 'true', startkey: JSON.stringify(['acc2', 'feed2', '2015-05-24T00:00:00.000Z']), endkey: JSON.stringify(['acc2', 'feed2', {}])})
       .reply(200, {rows: [ent2]})
     // With filter and two levels firstKey
     .get('/feednstatus/_design/fns/_view/entries_by_feed')
-    .query({include_docs: 'true', descending: 'false', inclusive_end: 'true',
-      startkey: JSON.stringify(['acc2', 'feed2', '2015-05-24T00:00:00.000Z', 'ent2']),
-      endkey: JSON.stringify(['acc2', 'feed2', {}])})
+    .query({include_docs: 'true', descending: 'false', inclusive_end: 'true', startkey: JSON.stringify(['acc2', 'feed2', '2015-05-24T00:00:00.000Z', 'ent2']), endkey: JSON.stringify(['acc2', 'feed2', {}])})
       .reply(200, {rows: [ent2]})
     // With filter and two levels endKey
     .get('/feednstatus/_design/fns/_view/entries_by_feed')
-    .query({include_docs: 'true', descending: 'false', inclusive_end: 'true',
-      startkey: JSON.stringify(['acc2', 'feed2']),
-      endkey: JSON.stringify(['acc2', 'feed2', '2015-05-24T00:00:00.000Z', 'ent2'])})
+    .query({include_docs: 'true', descending: 'false', inclusive_end: 'true', startkey: JSON.stringify(['acc2', 'feed2']), endkey: JSON.stringify(['acc2', 'feed2', '2015-05-24T00:00:00.000Z', 'ent2'])})
       .reply(200, {rows: [ent2]})
     // With filter and firstKey descending
     .get('/feednstatus/_design/fns/_view/entries_by_feed')
-    .query({include_docs: 'true', descending: 'true', inclusive_end: 'true',
-      startkey: JSON.stringify(['acc2', 'feed2', '2015-05-24T00:00:00.000Z', 'ent2']),
-      endkey: JSON.stringify(['acc2', 'feed2'])})
+    .query({include_docs: 'true', descending: 'true', inclusive_end: 'true', startkey: JSON.stringify(['acc2', 'feed2', '2015-05-24T00:00:00.000Z', 'ent2']), endkey: JSON.stringify(['acc2', 'feed2'])})
       .reply(200, {rows: [ent2]})
 }
 
@@ -247,11 +225,9 @@ test('db.getView should start with specific array key', (t) => {
 test('db.getView should end with specific string key', (t) => {
   const nock = setupNock()
     .get('/feednstatus/_design/fns/_view/sources')
-    .query({include_docs: 'true', descending: 'false', limit: '1',
-      endkey: JSON.stringify('src2')})
+    .query({include_docs: 'true', descending: 'false', limit: '1', endkey: JSON.stringify('src2')})
       .reply(200, {rows: [
-        {id: 'src2', key: 'src2',
-        doc: {_id: 'src2', type: 'source', name: 'Src 2', url: 'http://source2.com'}}
+        {id: 'src2', key: 'src2', doc: {_id: 'src2', type: 'source', name: 'Src 2', url: 'http://source2.com'}}
       ]})
   const db = new DbdbCouch(getConfig(nock))
 
@@ -268,11 +244,9 @@ test('db.getView should end with specific string key', (t) => {
 test('db.getView should end with specific array key', (t) => {
   const nock = setupNock()
     .get('/feednstatus/_design/fns/_view/sources')
-    .query({include_docs: 'true', descending: 'false', limit: '1',
-      endkey: JSON.stringify(['2015-05-24T00:00:00.000Z', 'src2'])})
+    .query({include_docs: 'true', descending: 'false', limit: '1', endkey: JSON.stringify(['2015-05-24T00:00:00.000Z', 'src2'])})
       .reply(200, {rows: [
-        {id: 'src2', key: ['2015-05-24T00:00:00.000Z', 'src2'],
-        doc: {_id: 'src2', type: 'source', name: 'Src 2', url: 'http://source2.com'}}
+        {id: 'src2', key: ['2015-05-24T00:00:00.000Z', 'src2'], doc: {_id: 'src2', type: 'source', name: 'Src 2', url: 'http://source2.com'}}
       ]})
   const db = new DbdbCouch(getConfig(nock))
 
