@@ -98,7 +98,13 @@ function setupFilter () {
       startkey: JSON.stringify(['acc2', 'feed2', '2015-05-24T00:00:00.000Z', 'ent2']),
       endkey: JSON.stringify(['acc2', 'feed2', {}])})
       .reply(200, {rows: [ent2]})
-      // With filter and firstKey descending
+    // With filter and two levels endKey
+    .get('/feednstatus/_design/fns/_view/entries_by_feed')
+    .query({include_docs: 'true', descending: 'false', inclusive_end: 'true',
+      startkey: JSON.stringify(['acc2', 'feed2']),
+      endkey: JSON.stringify(['acc2', 'feed2', '2015-05-24T00:00:00.000Z', 'ent2'])})
+      .reply(200, {rows: [ent2]})
+    // With filter and firstKey descending
     .get('/feednstatus/_design/fns/_view/entries_by_feed')
     .query({include_docs: 'true', descending: 'true', inclusive_end: 'true',
       startkey: JSON.stringify(['acc2', 'feed2', '2015-05-24T00:00:00.000Z', 'ent2']),
@@ -238,6 +244,48 @@ test('db.getView should start with specific array key', (t) => {
   })
 })
 
+test('db.getView should end with specific string key', (t) => {
+  const nock = setupNock()
+    .get('/feednstatus/_design/fns/_view/sources')
+    .query({include_docs: 'true', descending: 'false', limit: '1',
+      endkey: JSON.stringify('src2')})
+      .reply(200, {rows: [
+        {id: 'src2', key: 'src2',
+        doc: {_id: 'src2', type: 'source', name: 'Src 2', url: 'http://source2.com'}}
+      ]})
+  const db = new DbdbCouch(getConfig(nock))
+
+  return db.getView('fns:sources', {lastKey: 'src2', max: 1})
+
+  .then((obj) => {
+    t.is(obj.length, 1)
+    t.is(obj[0].id, 'src2')
+
+    teardownNock()
+  })
+})
+
+test('db.getView should end with specific array key', (t) => {
+  const nock = setupNock()
+    .get('/feednstatus/_design/fns/_view/sources')
+    .query({include_docs: 'true', descending: 'false', limit: '1',
+      endkey: JSON.stringify(['2015-05-24T00:00:00.000Z', 'src2'])})
+      .reply(200, {rows: [
+        {id: 'src2', key: ['2015-05-24T00:00:00.000Z', 'src2'],
+        doc: {_id: 'src2', type: 'source', name: 'Src 2', url: 'http://source2.com'}}
+      ]})
+  const db = new DbdbCouch(getConfig(nock))
+
+  return db.getView('fns:sources', {lastKey: ['2015-05-24T00:00:00.000Z', 'src2'], max: 1})
+
+  .then((obj) => {
+    t.is(obj.length, 1)
+    t.is(obj[0].id, 'src2')
+
+    teardownNock()
+  })
+})
+
 test('db.getView should filter results by string key', (t) => {
   const nock = setupFilter()
   const db = new DbdbCouch(getConfig(nock))
@@ -323,6 +371,21 @@ test('db.getView should filter and start with specific array key', (t) => {
 
   return db.getView('fns:entries_by_feed',
     {filter: ['acc2', 'feed2'], firstKey: ['2015-05-24T00:00:00.000Z', 'ent2']})
+
+  .then((obj) => {
+    t.is(obj.length, 1)
+    t.is(obj[0].id, 'ent2')
+
+    teardownNock()
+  })
+})
+
+test('db.getView should filter and end with specific array key', (t) => {
+  const nock = setupFilter()
+  const db = new DbdbCouch(getConfig(nock))
+
+  return db.getView('fns:entries_by_feed',
+    {filter: ['acc2', 'feed2'], lastKey: ['2015-05-24T00:00:00.000Z', 'ent2']})
 
   .then((obj) => {
     t.is(obj.length, 1)
