@@ -1,6 +1,6 @@
 {
   "name": "dbdb",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "Simple db layer. Supports only Cloudant/CouchDb at the moment.",
   "author": "Kjell-Morten Bratsberg Thorsen <post@kjellmorten.no>",
   "license": "MIT",
@@ -42,11 +42,11 @@
     "nano": "^6.2.0"
   },
   "devDependencies": {
-    "ava": "^0.15.2",
-    "babel-preset-es2015-node6": "^0.2.0",
-    "nock": "^7.0.2",
-    "nyc": "^7.0.0",
-    "sinon": "^1.17.3",
-    "standard": "^7.1.2"
+    "ava": "^0.17.0",
+    "babel-preset-es2015-node6": "^0.4.0",
+    "nock": "^9.0.2",
+    "nyc": "^10.0.0",
+    "sinon": "^1.17.6",
+    "standard": "^8.6.0"
   }
 }
